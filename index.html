@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luxmi Hotel Prayagraj | Comfortable Budget Rooms Near Sangam</title>
+  <meta name="description" content="Book clean, comfortable and affordable rooms at Luxmi Hotel Prayagraj. Family friendly budget hotel with AC rooms, Wi-Fi, hot water and easy access to Sangam and Prayagraj Junction.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://luxmihotel.com/">
+  <meta property="og:title" content="Luxmi Hotel Prayagraj">
+  <meta property="og:description" content="Comfortable budget rooms in Prayagraj for families, pilgrims and travellers.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://luxmihotel.com/">
+  <meta property="og:image" content="https://luxmihotel.com/assets/reception-hero.jpeg">
+  <link rel="icon" type="image/png" href="assets/luxmi-logo-dark.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --wine: #7a1720;
+      --wine-dark: #4d0d14;
+      --gold: #bf8f2f;
+      --ink: #171210;
+      --muted: #6f625b;
+      --line: #e7ded7;
+      --paper: #fffaf4;
+      --soft: #f6efe8;
+      --white: #ffffff;
+      --shadow: 0 18px 44px rgba(23, 18, 16, 0.12);
+      --radius: 8px;
+      --body: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --display: "Cormorant Garamond", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--body); color: var(--ink); background: var(--paper); line-height: 1.6; }
+    img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; }
+
+    .topbar {
+      background: var(--wine-dark);
+      color: rgba(255,255,255,0.86);
+      font-size: 13px;
+      padding: 8px 24px;
+    }
+
+    .topbar-inner, .nav-inner, .wrap {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,250,244,0.95);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+
+    .nav-inner {
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--display);
+      font-size: 31px;
+      font-weight: 700;
+      color: var(--wine);
+      line-height: 1;
+    }
+
+    .brand img {
+      width: 54px;
+      height: 54px;
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+
+    .brand .brand-text { color: var(--wine); }
+    .brand span { color: var(--gold); }
+    .nav-links { display: flex; align-items: center; gap: 26px; list-style: none; }
+    .nav-links a { color: var(--muted); font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .nav-links a:hover { color: var(--wine); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      padding: 12px 20px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { color: var(--white); background: var(--wine); }
+    .btn-primary:hover { background: var(--wine-dark); }
+    .btn-light { color: var(--wine); background: var(--white); border-color: rgba(255,255,255,0.65); }
+    .btn-outline { color: var(--white); border-color: rgba(255,255,255,0.6); }
+
+    .menu-btn {
+      display: none;
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--white);
+      color: var(--wine);
+      font-weight: 900;
+    }
+
+    .mobile-menu {
+      display: none;
+      border-top: 1px solid var(--line);
+      background: var(--paper);
+      padding: 12px 20px 20px;
+    }
+
+    .mobile-menu.open { display: grid; gap: 10px; }
+    .mobile-menu a { padding: 10px 4px; color: var(--muted); font-weight: 800; }
+
+    .hero {
+      min-height: calc(100vh - 104px);
+      position: relative;
+      display: grid;
+      align-items: end;
+      color: var(--white);
+      background:
+        linear-gradient(90deg, rgba(34,10,10,0.88), rgba(34,10,10,0.48) 50%, rgba(34,10,10,0.18)),
+        url("assets/reception-hero.jpeg") center/cover no-repeat;
+    }
+
+    .hero-content {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 110px 0 72px;
+    }
+
+    .kicker {
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1, h2, h3 { line-height: 1.05; }
+    h1 {
+      max-width: 820px;
+      font-family: var(--display);
+      font-size: clamp(50px, 8vw, 92px);
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    .hero p {
+      max-width: 620px;
+      color: rgba(255,255,255,0.82);
+      font-size: 19px;
+      margin-bottom: 28px;
+    }
+
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    .quick-book {
+      width: min(1120px, calc(100% - 40px));
+      margin: -46px auto 0;
+      position: relative;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr) auto;
+      gap: 12px;
+      padding: 18px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .field input, .field select, .field textarea {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--paper);
+      color: var(--ink);
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); background: var(--white); }
+
+    section { padding: 90px 0; }
+    .section-head { max-width: 700px; margin-bottom: 34px; }
+    .section-head.center { text-align: center; margin-inline: auto; }
+    h2 { font-family: var(--display); font-size: clamp(34px, 5vw, 54px); color: var(--wine); margin-bottom: 14px; }
+    .lead { color: var(--muted); font-size: 17px; }
+
+    .about {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 56px;
+    }
+
+    .photo-frame {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      min-height: 420px;
+      box-shadow: var(--shadow);
+      background: var(--soft);
+    }
+
+    .feature-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .tick {
+      width: 24px;
+      height: 24px;
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: rgba(191,143,47,0.16);
+      color: var(--wine);
+      font-size: 13px;
+    }
+
+    .rooms { background: var(--soft); }
+    .room-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .card {
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--white);
+      box-shadow: 0 12px 30px rgba(23,18,16,0.08);
+    }
+
+    .card-photo {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      background: var(--soft);
+    }
+
+    .photo-open {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      min-height: 36px;
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--wine);
+      background: rgba(255,255,255,0.92);
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(23,18,16,0.16);
+    }
+
+    .photo-open:hover { background: var(--white); }
+    .card-body { padding: 22px; }
+    .card h3 { font-family: var(--display); color: var(--wine); font-size: 29px; margin-bottom: 8px; }
+    .card p { color: var(--muted); margin-bottom: 16px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .tag {
+      border-radius: 999px;
+      background: rgba(122,23,32,0.08);
+      color: var(--wine);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 6px 10px;
+    }
+
+    .price-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .price { font-weight: 900; color: var(--ink); }
+    .price span { color: var(--muted); font-size: 13px; font-weight: 700; }
+
+    .room-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn-photo {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: var(--wine);
+      background: var(--paper);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn-photo:hover { border-color: var(--wine); background: var(--white); }
+
+    .amenities {
+      color: var(--white);
+      background: var(--wine);
+    }
+
+    .amenities h2 { color: var(--white); }
+    .amenities .lead { color: rgba(255,255,255,0.74); }
+    .amenity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .amenity {
+      min-height: 140px;
+      padding: 22px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .amenity strong { display: block; margin-bottom: 7px; font-size: 18px; }
+    .amenity span { color: rgba(255,255,255,0.68); font-size: 14px; }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      grid-template-rows: 240px 240px;
+      gap: 12px;
+    }
+
+    .gallery-grid a {
+      display: block;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: var(--soft);
+    }
+
+    .gallery-grid a:first-child { grid-row: span 2; }
+
+    .location {
+      background: var(--soft);
+    }
+
+    .location-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 36px;
+      align-items: start;
+    }
+
+    .map {
+      min-height: 380px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+    }
+
+    .map iframe { width: 100%; height: 380px; border: 0; display: block; }
+    .info-list { display: grid; gap: 14px; }
+    .info-item {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+    }
+
+    .info-item strong { display: block; color: var(--wine); margin-bottom: 4px; }
+    .info-item span { color: var(--muted); }
+
+    .landmarks {
+      grid-column: 1 / -1;
+      margin-top: 22px;
+    }
+
+    .landmarks h3 {
+      font-family: var(--display);
+      color: var(--ink);
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+
+    .landmark-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .landmark-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid #dec798;
+      border-radius: var(--radius);
+      background: var(--white);
+      box-shadow: 0 8px 18px rgba(23,18,16,0.06);
+    }
+
+    .landmark-arrow {
+      width: 40px;
+      height: 40px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      color: var(--gold);
+      background: rgba(191,143,47,0.12);
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .landmark-name {
+      display: block;
+      color: var(--ink);
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+
+    .landmark-desc {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .landmark-distance {
+      border-radius: 999px;
+      padding: 6px 12px;
+      color: var(--wine);
+      background: rgba(122,23,32,0.08);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 42px;
+      align-items: start;
+    }
+
+    .contact-card {
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+      box-shadow: 0 12px 30px rgba(23,18,16,0.08);
+    }
+
+    .contact-lines { display: grid; gap: 16px; margin-top: 26px; }
+    .contact-lines a, .contact-lines div { color: var(--muted); }
+    .contact-lines strong { display: block; color: var(--ink); }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field.full { grid-column: 1 / -1; }
+    textarea { min-height: 104px; resize: vertical; }
+    .form-note { color: var(--muted); font-size: 13px; margin-top: 12px; }
+
+    .photo-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(23,18,16,0.74);
+    }
+
+    .photo-modal.open { display: flex; }
+
+    .photo-dialog {
+      width: min(980px, 100%);
+      max-height: min(86vh, 820px);
+      overflow: auto;
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: 0 28px 70px rgba(0,0,0,0.34);
+    }
+
+    .photo-dialog-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--paper);
+    }
+
+    .photo-dialog-head h3 {
+      font-family: var(--display);
+      color: var(--wine);
+      font-size: 30px;
+    }
+
+    .photo-close {
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--wine);
+      background: var(--white);
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 18px;
+    }
+
+    .photo-grid figure {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+    }
+
+    .photo-grid img {
+      aspect-ratio: 4 / 3;
+      height: auto;
+    }
+
+    .photo-grid figcaption {
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    footer {
+      color: rgba(255,255,255,0.72);
+      background: var(--wine-dark);
+      padding: 50px 0 26px;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 36px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .footer-grid h3 {
+      color: var(--white);
+      font-size: 16px;
+      margin-bottom: 14px;
+    }
+
+    .footer-logo {
+      display: block;
+      width: 132px;
+      height: 132px;
+      object-fit: contain;
+      margin-bottom: 14px;
+    }
+
+    .footer-grid ul { list-style: none; display: grid; gap: 9px; }
+    .footer-grid a:hover { color: var(--white); }
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding-top: 22px;
+      font-size: 13px;
+    }
+
+    .whatsapp {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 30;
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: #25d366;
+      color: var(--white);
+      box-shadow: 0 14px 34px rgba(37,211,102,0.36);
+      font-weight: 900;
+    }
+
+    .mobile-actions {
+      display: none;
+    }
+
+    @media (max-width: 920px) {
+      .topbar-inner { align-items: flex-start; flex-direction: column; gap: 4px; }
+      .nav-links, .nav-inner > .btn { display: none; }
+      .menu-btn { display: inline-grid; place-items: center; }
+      .hero { min-height: 680px; }
+      .quick-book { grid-template-columns: 1fr 1fr; }
+      .about, .location-grid, .contact-grid { grid-template-columns: 1fr; }
+      .room-grid { grid-template-columns: 1fr 1fr; }
+      .amenity-grid { grid-template-columns: 1fr 1fr; }
+      .gallery-grid { grid-template-columns: 1fr 1fr; grid-template-rows: 220px 220px 220px; }
+      .gallery-grid a:first-child { grid-row: span 1; grid-column: span 2; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      body { padding-bottom: 76px; }
+      .topbar, .nav-inner, .topbar-inner, .wrap, .hero-content, .quick-book { width: calc(100% - 28px); }
+      .topbar { padding: 8px 0; font-size: 12px; }
+      .topbar-inner span:last-child { line-height: 1.7; }
+      .nav-inner { min-height: 62px; gap: 10px; }
+      .brand { font-size: 24px; gap: 8px; }
+      .brand img { width: 42px; height: 42px; }
+      .menu-btn { width: 42px; height: 40px; font-size: 13px; }
+      .mobile-menu { padding: 10px 14px 14px; }
+      .mobile-menu a { padding: 12px 4px; border-bottom: 1px solid var(--line); }
+      .mobile-menu a:last-child { border-bottom: 0; }
+      .hero {
+        min-height: 560px;
+        background-position: 56% center;
+      }
+      h1 { font-size: clamp(38px, 13vw, 54px); }
+      .hero-content { padding-bottom: 84px; }
+      .hero p { font-size: 17px; }
+      .hero-actions .btn { width: 100%; }
+      .quick-book {
+        grid-template-columns: 1fr;
+        margin-top: -62px;
+        padding: 14px;
+        gap: 12px;
+      }
+      section { padding: 68px 0; }
+      .section-head { margin-bottom: 24px; }
+      .feature-list, .room-grid, .amenity-grid, .form-grid, .footer-grid { grid-template-columns: 1fr; }
+      .photo-frame { min-height: 300px; }
+      .card-body { padding: 20px; }
+      .card h3 { font-size: 27px; }
+      .price-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+      .room-actions {
+        justify-content: stretch;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+      .room-actions .btn,
+      .room-actions .btn-photo { width: 100%; }
+      .photo-modal {
+        align-items: stretch;
+        padding: 10px;
+      }
+      .photo-dialog {
+        width: 100%;
+        max-height: calc(100vh - 20px);
+      }
+      .photo-dialog-head { padding: 14px; }
+      .photo-dialog-head h3 { font-size: 25px; }
+      .photo-grid { grid-template-columns: 1fr; padding: 12px; }
+      .map, .map iframe { min-height: 320px; height: 320px; }
+      .landmark-item { grid-template-columns: auto 1fr; }
+      .landmark-distance { grid-column: 2; justify-self: start; }
+      .gallery-grid { grid-template-columns: 1fr; grid-template-rows: repeat(5, 230px); }
+      .gallery-grid a:first-child { grid-column: span 1; }
+      .contact-lines { gap: 18px; }
+      .contact-card { padding: 20px; }
+      footer { padding-bottom: 94px; }
+      .footer-bottom { flex-direction: column; }
+      .whatsapp { display: none; }
+      .mobile-actions {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 50;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 10px 14px;
+        background: rgba(255,250,244,0.96);
+        border-top: 1px solid var(--line);
+        box-shadow: 0 -10px 28px rgba(23,18,16,0.12);
+        backdrop-filter: blur(12px);
+      }
+      .mobile-actions a {
+        min-height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 6px;
+        color: var(--white);
+        font-weight: 900;
+      }
+      .mobile-actions .call { background: var(--wine); }
+      .mobile-actions .wa { background: #25d366; }
+    }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Hotel",
+    "name": "Luxmi Hotel",
+    "url": "https://luxmihotel.com/",
+    "image": "https://luxmihotel.com/assets/reception-hero.jpeg",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "15, Swami Vivekanand Marg, Johnston Ganj, Chauraha",
+      "addressLocality": "Prayagraj",
+      "addressRegion": "Uttar Pradesh",
+      "postalCode": "211003",
+      "addressCountry": "IN"
+    },
+    "telephone": ["+917007417970", "+917054384239", "+919026088927"],
+    "priceRange": "Rs.800 - Rs.1800"
+  }
+  </script>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <span>Luxmi Hotel, Prayagraj, Uttar Pradesh</span>
+      <span>Call/WhatsApp: <a href="tel:+917007417970">+91 70074 17970</a> | <a href="tel:+917054384239">+91 70543 84239</a> | <a href="tel:+919026088927">+91 90260 88927</a></span>
+    </div>
+  </div>
+
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a class="brand" href="#home" aria-label="Luxmi Hotel home">
+        <img src="assets/luxmi-logo-dark.png" alt="" aria-hidden="true">
+        <span class="brand-text">Luxmi Hotel</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#rooms">Rooms</a></li>
+        <li><a href="#amenities">Amenities</a></li>
+        <li><a href="#gallery">Gallery</a></li>
+        <li><a href="#location">Location</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <a class="btn btn-primary" href="#booking">Book Now</a>
+      <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" onclick="toggleMenu()">Menu</button>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#about" onclick="toggleMenu()">About</a>
+      <a href="#rooms" onclick="toggleMenu()">Rooms</a>
+      <a href="#amenities" onclick="toggleMenu()">Amenities</a>
+      <a href="#gallery" onclick="toggleMenu()">Gallery</a>
+      <a href="#location" onclick="toggleMenu()">Location</a>
+      <a href="#contact" onclick="toggleMenu()">Contact</a>
+    </div>
+  </nav>
+
+  <main id="home">
+    <section class="hero" aria-label="Luxmi Hotel rooms">
+      <div class="hero-content">
+        <div class="kicker">Affordable rooms in Prayagraj</div>
+        <h1>Clean, comfortable stays for families, pilgrims and travellers.</h1>
+        <p>Stay close to the heart of the city with non-AC and AC rooms, hot water, Wi-Fi, helpful staff and budget-friendly pricing.</p>
+        <div class="hero-actions">
+          <a class="btn btn-light" href="#booking">Check Availability</a>
+          <a class="btn btn-outline" href="#rooms">View Rooms</a>
+        </div>
+      </div>
+    </section>
+
+    <form class="quick-book" id="booking" onsubmit="sendBooking(event)">
+      <div class="field">
+        <label for="qb-name">Name</label>
+        <input id="qb-name" type="text" placeholder="Your name" required>
+      </div>
+      <div class="field">
+        <label for="qb-phone">Phone</label>
+        <input id="qb-phone" type="tel" placeholder="+91 00000 00000" required>
+      </div>
+      <div class="field">
+        <label for="qb-date">Check-in</label>
+        <input id="qb-date" type="date" required>
+      </div>
+      <div class="field">
+        <label for="qb-room">Room</label>
+        <select id="qb-room">
+          <option>Standard Double Room NON AC - Air Cooler - Rs.800</option>
+          <option>Deluxe Double Room AC - Rs.1200</option>
+          <option>Deluxe Four Bed AC - Rs.1800</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">Send Enquiry</button>
+    </form>
+
+    <section id="about">
+      <div class="wrap about">
+        <div class="photo-frame">
+          <img src="assets/about-room.jpeg" alt="Deluxe room at Luxmi Hotel Prayagraj" loading="lazy">
+        </div>
+        <div>
+          <div class="kicker">Welcome to Luxmi Hotel</div>
+          <h2>Your reliable hotel stay in Prayagraj.</h2>
+          <p class="lead">Luxmi Hotel is built for guests who want a clean room, fair pricing and a convenient base in Prayagraj. It is a practical choice for pilgrims visiting Sangam, families attending functions and business travellers who need a restful night.</p>
+          <div class="feature-list">
+            <div class="feature"><span class="tick">OK</span> Budget-friendly rooms</div>
+            <div class="feature"><span class="tick">OK</span> AC room options</div>
+            <div class="feature"><span class="tick">OK</span> 24-hour assistance</div>
+            <div class="feature"><span class="tick">OK</span> Family friendly</div>
+            <div class="feature"><span class="tick">OK</span> Hot water</div>
+            <div class="feature"><span class="tick">OK</span> Easy city access</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="rooms" id="rooms">
+      <div class="wrap">
+        <div class="section-head center">
+          <div class="kicker">Rooms</div>
+          <h2>Choose the room that fits your trip.</h2>
+          <p class="lead">Simple, neat and comfortable accommodation with the essentials guests expect.</p>
+        </div>
+        <div class="room-grid">
+          <article class="card">
+            <div class="card-photo">
+              <img src="assets/standard-non-ac-room-1.jpeg" alt="Standard Double Room NON AC at Luxmi Hotel" loading="lazy">
+              <button class="photo-open" type="button" onclick="openPhotoViewer('standard')">View Photos</button>
+            </div>
+            <div class="card-body">
+              <h3>Standard Double Room NON AC</h3>
+              <p>A neat non-AC double room with air cooler, suitable for up to 3 guests.</p>
+              <div class="tags"><span class="tag">Air Cooler</span><span class="tag">Max 3 Pax</span><span class="tag">Wi-Fi</span><span class="tag">Hot Water</span></div>
+              <div class="price-row"><div class="price">Rs.800 <span>/ night</span></div><div class="room-actions"><button class="btn-photo" type="button" onclick="openPhotoViewer('standard')">View Photos</button><a href="#booking" class="btn btn-primary">Book</a></div></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card-photo">
+              <img src="assets/deluxe-double-ac-main.jpeg" alt="Deluxe double AC room at Luxmi Hotel" loading="lazy">
+              <button class="photo-open" type="button" onclick="openPhotoViewer('deluxeDouble')">View Photos</button>
+            </div>
+            <div class="card-body">
+              <h3>Deluxe Double Room AC</h3>
+              <p>A comfortable AC double room for up to 3 guests, ideal for couples and small families.</p>
+              <div class="tags"><span class="tag">AC</span><span class="tag">Max 3 Pax</span><span class="tag">Wi-Fi</span><span class="tag">Attached Bath</span></div>
+              <div class="price-row"><div class="price">Rs.1200 <span>/ night</span></div><div class="room-actions"><button class="btn-photo" type="button" onclick="openPhotoViewer('deluxeDouble')">View Photos</button><a href="#booking" class="btn btn-primary">Book</a></div></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card-photo">
+              <img src="assets/deluxe-four-bed-main.jpeg" alt="Deluxe Four Bed AC room at Luxmi Hotel Prayagraj" loading="lazy">
+              <button class="photo-open" type="button" onclick="openPhotoViewer('deluxeFour')">View Photos</button>
+            </div>
+            <div class="card-body">
+              <h3>Deluxe Four Bed AC</h3>
+              <p>A larger AC room with four beds, made for families and groups of up to 5 guests.</p>
+              <div class="tags"><span class="tag">AC</span><span class="tag">Four Beds</span><span class="tag">Max 5 Pax</span><span class="tag">Geyser</span></div>
+              <div class="price-row"><div class="price">Rs.1800 <span>/ night</span></div><div class="room-actions"><button class="btn-photo" type="button" onclick="openPhotoViewer('deluxeFour')">View Photos</button><a href="#booking" class="btn btn-primary">Book</a></div></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="amenities" id="amenities">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="kicker">Amenities</div>
+          <h2>Everything needed for a comfortable stay.</h2>
+          <p class="lead">Useful facilities, responsive service and clean rooms for short and long visits.</p>
+        </div>
+        <div class="amenity-grid">
+          <div class="amenity"><strong>Wi-Fi</strong><span>Internet access for guests.</span></div>
+          <div class="amenity"><strong>Air Conditioning</strong><span>AC room options for summer comfort.</span></div>
+          <div class="amenity"><strong>Hot Water</strong><span>Attached bathrooms with geyser facilities.</span></div>
+          <div class="amenity"><strong>Room Service</strong><span>Helpful staff support during your stay.</span></div>
+          <div class="amenity"><strong>Television</strong><span>TV available in selected rooms.</span></div>
+          <div class="amenity"><strong>Group Rooms</strong><span>Four-bed AC room available for families and groups.</span></div>
+          <div class="amenity"><strong>Reception Help</strong><span>Booking and local guidance assistance.</span></div>
+          <div class="amenity"><strong>Easy Access</strong><span>Convenient base for Prayagraj travel.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gallery">
+      <div class="wrap">
+        <div class="section-head center">
+          <div class="kicker">Gallery</div>
+          <h2>See the rooms before you book.</h2>
+          <p class="lead">Real photos from Luxmi Hotel rooms and facilities.</p>
+        </div>
+        <div class="gallery-grid">
+          <a href="assets/deluxe-double-ac-main.jpeg"><img src="assets/deluxe-double-ac-main.jpeg" alt="Deluxe double AC room at Luxmi Hotel" loading="lazy"></a>
+          <a href="assets/double-room.jpeg"><img src="assets/double-room.jpeg" alt="Double room at Luxmi Hotel" loading="lazy"></a>
+          <a href="assets/deluxe-four-bed-main.jpeg"><img src="assets/deluxe-four-bed-main.jpeg" alt="Deluxe Four Bed AC room at Luxmi Hotel" loading="lazy"></a>
+          <a href="assets/bathroom.jpeg"><img src="assets/bathroom.jpeg" alt="Attached bathroom at Luxmi Hotel" loading="lazy"></a>
+          <a href="assets/amenities-room.jpeg"><img src="assets/amenities-room.jpeg" alt="Room amenities at Luxmi Hotel" loading="lazy"></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="location" id="location">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="kicker">Location</div>
+          <h2>Stay connected to Prayagraj.</h2>
+          <p class="lead">Find us at Johnston Ganj Chauraha, close to central Prayagraj and convenient city transport.</p>
+        </div>
+        <div class="location-grid">
+          <div class="map">
+            <iframe title="Luxmi Hotel location map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Luxmi%20Hotel%2C%2015%2C%20Swami%20Vivekanand%20Marg%2C%20Johnston%20Ganj%2C%20Chauraha%2C%20Prayagraj%2C%20Uttar%20Pradesh%20211003&output=embed"></iframe>
+          </div>
+          <div class="info-list">
+            <div class="info-item"><strong>Address</strong><span>Luxmi Hotel, 15, Swami Vivekanand Marg, Johnston Ganj, Chauraha, Prayagraj, Uttar Pradesh 211003</span></div>
+            <div class="info-item"><strong>Check-in / Check-out</strong><span>Check-in: 12:00 PM. Check-out: 11:00 AM.</span></div>
+            <div class="info-item"><strong>Directions</strong><span><a href="https://maps.app.goo.gl/pqZB5CP8BLzBZmbu5?g_st=com.google.maps.preview.copy" target="_blank" rel="noopener">Open Luxmi Hotel on Google Maps</a></span></div>
+          </div>
+        </div>
+        <div class="landmarks">
+          <h3>Nearby Landmarks</h3>
+          <div class="landmark-list">
+            <div class="landmark-item">
+              <span class="landmark-arrow">&rsaquo;</span>
+              <span><span class="landmark-name">Triveni Sangam</span><span class="landmark-desc">Sacred confluence of Ganga, Yamuna and Saraswati</span></span>
+              <span class="landmark-distance">3 km</span>
+            </div>
+            <div class="landmark-item">
+              <span class="landmark-arrow">&rsaquo;</span>
+              <span><span class="landmark-name">Prayagraj Junction</span><span class="landmark-desc">Main railway station, well connected to all cities</span></span>
+              <span class="landmark-distance">1 km</span>
+            </div>
+            <div class="landmark-item">
+              <span class="landmark-arrow">&rsaquo;</span>
+              <span><span class="landmark-name">Bamrauli Airport</span><span class="landmark-desc">Prayagraj Airport with regular flights</span></span>
+              <span class="landmark-distance">10 km</span>
+            </div>
+            <div class="landmark-item">
+              <span class="landmark-arrow">&rsaquo;</span>
+              <span><span class="landmark-name">Allahabad Fort</span><span class="landmark-desc">Historic Mughal-era fort on the riverbank</span></span>
+              <span class="landmark-distance">2 km</span>
+            </div>
+            <div class="landmark-item">
+              <span class="landmark-arrow">&rsaquo;</span>
+              <span><span class="landmark-name">Anand Bhavan</span><span class="landmark-desc">Nehru family ancestral home and museum</span></span>
+              <span class="landmark-distance">3 km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <div class="wrap contact-grid">
+        <div>
+          <div class="kicker">Contact</div>
+          <h2>Book directly with Luxmi Hotel.</h2>
+          <p class="lead">For the fastest confirmation, call or send your booking details on WhatsApp.</p>
+          <div class="contact-lines">
+            <div><strong>Phone</strong><a href="tel:+917007417970">+91 70074 17970</a><br><a href="tel:+917054384239">+91 70543 84239</a><br><a href="tel:+919026088927">+91 90260 88927</a></div>
+            <a href="https://wa.me/917007417970" target="_blank" rel="noopener"><strong>WhatsApp</strong>+91 70074 17970</a>
+            <a href="mailto:luxmihotel2017@gmail.com"><strong>Email</strong>luxmihotel2017@gmail.com</a>
+            <a href="https://maps.app.goo.gl/pqZB5CP8BLzBZmbu5?g_st=com.google.maps.preview.copy" target="_blank" rel="noopener"><strong>Address</strong>15, Swami Vivekanand Marg, Johnston Ganj, Chauraha, Prayagraj, Uttar Pradesh 211003</a>
+          </div>
+        </div>
+        <form class="contact-card form-grid" onsubmit="sendBooking(event)">
+          <div class="field">
+            <label for="name">Full Name</label>
+            <input id="name" type="text" placeholder="Your name" required>
+          </div>
+          <div class="field">
+            <label for="phone">Phone</label>
+            <input id="phone" type="tel" placeholder="+91 00000 00000" required>
+          </div>
+          <div class="field">
+            <label for="checkin">Check-in</label>
+            <input id="checkin" type="date">
+          </div>
+          <div class="field">
+            <label for="checkout">Check-out</label>
+            <input id="checkout" type="date">
+          </div>
+          <div class="field full">
+            <label for="room">Room Type</label>
+            <select id="room">
+              <option>Standard Double Room NON AC - Air Cooler - Rs.800</option>
+              <option>Deluxe Double Room AC - Rs.1200</option>
+              <option>Deluxe Four Bed AC - Rs.1800</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label for="message">Message</label>
+            <textarea id="message" placeholder="Number of guests, arrival time or any special request"></textarea>
+          </div>
+          <div class="field full">
+            <button class="btn btn-primary" type="submit">Send Booking Enquiry</button>
+            <p class="form-note">Submitting this form opens WhatsApp with the booking details filled in.</p>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="footer-grid">
+        <div>
+          <a href="#home" aria-label="Luxmi Hotel home">
+            <img class="footer-logo" src="assets/luxmi-logo-light.png" alt="Luxmi Hotel logo" loading="lazy">
+          </a>
+          <p style="margin-top:14px;">Comfortable budget rooms in Prayagraj for families, pilgrims and travellers.</p>
+        </div>
+        <div>
+          <h3>Quick Links</h3>
+          <ul>
+            <li><a href="#rooms">Rooms</a></li>
+            <li><a href="#amenities">Amenities</a></li>
+            <li><a href="#gallery">Gallery</a></li>
+            <li><a href="#location">Location</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Contact</h3>
+          <ul>
+            <li>+91 70074 17970</li>
+            <li>+91 70543 84239</li>
+            <li>+91 90260 88927</li>
+            <li>luxmihotel2017@gmail.com</li>
+            <li>15, Swami Vivekanand Marg, Johnston Ganj, Prayagraj 211003</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>Copyright 2026 Luxmi Hotel, Prayagraj. All rights reserved.</span>
+        <span>Website: luxmihotel.com</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="photo-modal" id="photoModal" aria-hidden="true" onclick="closePhotoViewer(event)">
+    <div class="photo-dialog" role="dialog" aria-modal="true" aria-labelledby="photoModalTitle" onclick="event.stopPropagation()">
+      <div class="photo-dialog-head">
+        <h3 id="photoModalTitle">Room Photos</h3>
+        <button class="photo-close" type="button" aria-label="Close photos" onclick="closePhotoViewer()">&times;</button>
+      </div>
+      <div class="photo-grid" id="photoModalGrid"></div>
+    </div>
+  </div>
+
+  <a class="whatsapp" href="https://wa.me/917007417970?text=Hello%2C%20I%20would%20like%20to%20book%20a%20room%20at%20Luxmi%20Hotel%20Prayagraj." target="_blank" rel="noopener" aria-label="Chat on WhatsApp">WA</a>
+
+  <div class="mobile-actions" aria-label="Quick contact actions">
+    <a class="call" href="tel:+917007417970">Call Now</a>
+    <a class="wa" href="https://wa.me/917007417970?text=Hello%2C%20I%20would%20like%20to%20book%20a%20room%20at%20Luxmi%20Hotel%20Prayagraj." target="_blank" rel="noopener">WhatsApp</a>
+  </div>
+
+  <script>
+    const HOTEL_WHATSAPP_NUMBER = "917007417970";
+    const roomGalleries = {
+      standard: {
+        title: "Standard Double Room NON AC",
+        photos: [
+          { src: "assets/standard-non-ac-room-1.jpeg", caption: "Standard Double NON AC room" },
+          { src: "assets/standard-non-ac-room-2.jpeg", caption: "Room table and TV area" },
+          { src: "assets/standard-bathroom-sink.jpg", caption: "Attached bathroom wash area" },
+          { src: "assets/standard-bathroom-toilet.jpg", caption: "Attached toilet" }
+        ]
+      },
+      deluxeDouble: {
+        title: "Deluxe Double Room AC",
+        photos: [
+          { src: "assets/deluxe-double-ac-main.jpeg", caption: "Deluxe Double AC room" },
+          { src: "assets/deluxe-double-ac-bed.jpeg", caption: "Bed and dressing area" },
+          { src: "assets/deluxe-double-ac-tv.jpeg", caption: "TV, wardrobe and AC" },
+          { src: "assets/deluxe-double-ac-room-2.jpeg", caption: "Room seating and AC" },
+          { src: "assets/deluxe-double-ac-room-3.jpeg", caption: "Room overview" },
+          { src: "assets/deluxe-double-ac-bathroom-1.jpeg", caption: "Attached toilet" },
+          { src: "assets/deluxe-double-ac-bathroom-2.jpeg", caption: "Attached bathroom wash area" }
+        ]
+      },
+      deluxeFour: {
+        title: "Deluxe Four Bed AC",
+        photos: [
+          { src: "assets/deluxe-four-bed-main.jpeg", caption: "Deluxe Four Bed AC room" },
+          { src: "assets/deluxe-room.jpeg", caption: "Room seating and TV area" },
+          { src: "assets/amenities-room.jpeg", caption: "Room amenities" },
+          { src: "assets/deluxe-four-bed-bathroom.jpeg", caption: "Attached bathroom and geyser" },
+          { src: "assets/bathroom.jpeg", caption: "Attached toilet" }
+        ]
+      }
+    };
+
+    function toggleMenu() {
+      const menu = document.getElementById("mobileMenu");
+      const button = document.querySelector(".menu-btn");
+      const isOpen = menu.classList.toggle("open");
+      button.setAttribute("aria-expanded", String(isOpen));
+    }
+
+    function setMinimumDates() {
+      const today = new Date().toISOString().split("T")[0];
+      ["qb-date", "checkin", "checkout"].forEach((id) => {
+        const input = document.getElementById(id);
+        if (input) input.min = today;
+      });
+    }
+
+    function readValue(ids) {
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.value) return el.value.trim();
+      }
+      return "";
+    }
+
+    function openPhotoViewer(roomKey) {
+      const gallery = roomGalleries[roomKey];
+      if (!gallery) return;
+
+      const modal = document.getElementById("photoModal");
+      const title = document.getElementById("photoModalTitle");
+      const grid = document.getElementById("photoModalGrid");
+
+      title.textContent = gallery.title;
+      grid.innerHTML = gallery.photos.map((photo) => `
+        <figure>
+          <img src="${photo.src}" alt="${photo.caption}" loading="lazy">
+          <figcaption>${photo.caption}</figcaption>
+        </figure>
+      `).join("");
+
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closePhotoViewer() {
+      const modal = document.getElementById("photoModal");
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    function sendBooking(event) {
+      event.preventDefault();
+
+      const name = readValue(["qb-name", "name"]);
+      const phone = readValue(["qb-phone", "phone"]);
+      const checkin = readValue(["qb-date", "checkin"]);
+      const checkout = readValue(["checkout"]);
+      const room = readValue(["qb-room", "room"]);
+      const message = readValue(["message"]);
+
+      const text = [
+        "Hello Luxmi Hotel, I would like to book a room.",
+        "Name: " + name,
+        "Phone: " + phone,
+        "Room: " + room,
+        "Check-in: " + (checkin || "Not decided"),
+        "Check-out: " + (checkout || "Not decided"),
+        message ? "Message: " + message : ""
+      ].filter(Boolean).join("\n");
+
+      window.open("https://wa.me/" + HOTEL_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(text), "_blank", "noopener");
+    }
+
+    setMinimumDates();
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closePhotoViewer();
+    });
+  </script>
+</body>
+</html>
