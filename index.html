@@ -191,7 +191,7 @@
       position: relative;
       z-index: 5;
       display: grid;
-      grid-template-columns: repeat(4, 1fr) auto;
+      grid-template-columns: repeat(5, 1fr) auto;
       gap: 12px;
       padding: 18px;
       background: var(--white);
@@ -829,6 +829,10 @@
         <input id="qb-date" type="date" required>
       </div>
       <div class="field">
+        <label for="qb-guests">Persons</label>
+        <input id="qb-guests" type="number" min="1" value="2" required>
+      </div>
+      <div class="field">
         <label for="qb-room">Room</label>
         <select id="qb-room">
           <option>Standard Double Room NON AC - Air Cooler - Rs.800</option>
@@ -1193,6 +1197,7 @@
       const phone = readValue(["qb-phone", "phone"]);
       const checkin = readValue(["qb-date", "checkin"]);
       const checkout = readValue(["checkout"]);
+      const guests = readValue(["qb-guests"]);
       const room = readValue(["qb-room", "room"]);
       const message = readValue(["message"]);
 
@@ -1201,6 +1206,7 @@
         "Name: " + name,
         "Phone: " + phone,
         "Room: " + room,
+        "Persons: " + (guests || "Not mentioned"),
         "Check-in: " + (checkin || "Not decided"),
         "Check-out: " + (checkout || "Not decided"),
         message ? "Message: " + message : ""
