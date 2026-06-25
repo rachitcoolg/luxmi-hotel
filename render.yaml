@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: luxmi-hotel-booking
+    runtime: python
+    repo: https://github.com/rachitcoolg/luxmi-hotel
+    branch: main
+    rootDir: booking-backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    plan: starter
+    autoDeployTrigger: commit
+    disk:
+      name: luxmi-booking-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_PATH
+        value: /var/data/luxmi_booking.db
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        value: luxmihotel2017@gmail.com
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        value: luxmihotel2017@gmail.com
+      - key: HOTEL_EMAIL
+        value: luxmihotel2017@gmail.com
