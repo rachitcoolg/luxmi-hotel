@@ -272,6 +272,16 @@
       font-size: 13px;
     }
 
+    .tick::before {
+      content: "";
+      width: 9px;
+      height: 5px;
+      border-left: 2px solid var(--wine);
+      border-bottom: 2px solid var(--wine);
+      transform: rotate(-45deg);
+      margin-top: -2px;
+    }
+
     .rooms { background: var(--soft); }
     .room-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
     .card {
@@ -856,12 +866,12 @@
           <h2>Comfortable Stays in Prayagraj</h2>
           <p class="lead">Clean rooms, fair prices and easy access to Sangam, Prayagraj Junction, markets and city landmarks.</p>
           <div class="feature-list">
-            <div class="feature"><span class="tick">OK</span> AC and non-AC rooms</div>
-            <div class="feature"><span class="tick">OK</span> Budget-friendly pricing</div>
-            <div class="feature"><span class="tick">OK</span> Free Wi-Fi</div>
-            <div class="feature"><span class="tick">OK</span> Hot water</div>
-            <div class="feature"><span class="tick">OK</span> 24-hour assistance</div>
-            <div class="feature"><span class="tick">OK</span> Family friendly stay</div>
+            <div class="feature"><span class="tick" aria-hidden="true"></span> AC and non-AC rooms</div>
+            <div class="feature"><span class="tick" aria-hidden="true"></span> Budget-friendly pricing</div>
+            <div class="feature"><span class="tick" aria-hidden="true"></span> Free Wi-Fi</div>
+            <div class="feature"><span class="tick" aria-hidden="true"></span> Hot water</div>
+            <div class="feature"><span class="tick" aria-hidden="true"></span> 24-hour assistance</div>
+            <div class="feature"><span class="tick" aria-hidden="true"></span> Family friendly stay</div>
           </div>
         </div>
       </div>
