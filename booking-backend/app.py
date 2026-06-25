@@ -1,6 +1,8 @@
 import os
+import smtplib
 import sqlite3
 from datetime import date, datetime, timedelta
+from email.message import EmailMessage
 
 from flask import Flask, flash, g, redirect, render_template_string, request, session, url_for
 
@@ -9,6 +11,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE = os.environ.get("DATABASE_PATH", os.path.join(BASE_DIR, "luxmi_booking.db"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "luxmi-admin-2026")
 ASSET_BASE = "https://luxmihotel.com/assets/"
+SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "luxmihotel2017@gmail.com")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD") or os.environ.get("MAIL_PASSWORD")
+MAIL_FROM = os.environ.get("MAIL_FROM", SMTP_USERNAME)
+HOTEL_EMAIL = os.environ.get("HOTEL_EMAIL", "luxmihotel2017@gmail.com")
+SMTP_STARTTLS = os.environ.get("SMTP_STARTTLS", "true").lower() not in {"0", "false", "no"}
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-this-secret-before-deploy")
@@ -258,6 +267,92 @@ def booking_code(prefix):
     return f"{prefix}-{datetime.now().strftime('%y%m%d%H%M%S')}"
 
 
+def booking_voucher(code, room, guest_name, phone, email, checkin, checkout, guests, rooms_required, total, special_request):
+    subject = f"Luxmi Hotel booking confirmation - {code}"
+    text = f"""Luxmi Hotel Booking Confirmation Voucher
+
+Booking Code: {code}
+Guest Name: {guest_name}
+Phone: {phone}
+Email: {email}
+Room: {room['name']}
+Check-in: {checkin.strftime('%d %b %Y')}
+Check-out: {checkout.strftime('%d %b %Y')}
+Guests: {guests}
+Rooms: {rooms_required}
+Total Amount: Rs.{total}
+Special Request: {special_request or 'None'}
+
+Hotel Address:
+Luxmi Hotel
+15, Swami Vivekanand Marg, Johnston Ganj, Chauraha, Prayagraj, Uttar Pradesh 211003
+
+For help, call or WhatsApp: +91 70074 17970
+"""
+    html = f"""
+    <div style="font-family:Arial,sans-serif;color:#171210;line-height:1.5">
+      <h2 style="color:#7a1720;margin-bottom:4px">Luxmi Hotel Booking Confirmation Voucher</h2>
+      <p style="margin-top:0">Please keep this booking code for check-in.</p>
+      <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;border:1px solid #e7ded7">
+        <tr><td><strong>Booking Code</strong></td><td>{code}</td></tr>
+        <tr><td><strong>Guest Name</strong></td><td>{guest_name}</td></tr>
+        <tr><td><strong>Phone</strong></td><td>{phone}</td></tr>
+        <tr><td><strong>Email</strong></td><td>{email}</td></tr>
+        <tr><td><strong>Room</strong></td><td>{room['name']}</td></tr>
+        <tr><td><strong>Check-in</strong></td><td>{checkin.strftime('%d %b %Y')}</td></tr>
+        <tr><td><strong>Check-out</strong></td><td>{checkout.strftime('%d %b %Y')}</td></tr>
+        <tr><td><strong>Guests</strong></td><td>{guests}</td></tr>
+        <tr><td><strong>Rooms</strong></td><td>{rooms_required}</td></tr>
+        <tr><td><strong>Total Amount</strong></td><td>Rs.{total}</td></tr>
+        <tr><td><strong>Special Request</strong></td><td>{special_request or 'None'}</td></tr>
+      </table>
+      <p><strong>Hotel Address:</strong><br>Luxmi Hotel, 15, Swami Vivekanand Marg, Johnston Ganj, Chauraha, Prayagraj, Uttar Pradesh 211003</p>
+      <p><strong>Call/WhatsApp:</strong> +91 70074 17970</p>
+    </div>
+    """
+    return subject, text, html
+
+
+def send_email(to_addresses, subject, text, html):
+    recipients = [addr for addr in to_addresses if addr]
+    if not recipients:
+        return False, "No recipient email address."
+    if not SMTP_USERNAME or not SMTP_PASSWORD:
+        return False, "SMTP password is not configured."
+
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = f"Luxmi Hotel <{MAIL_FROM}>"
+    message["To"] = ", ".join(recipients)
+    message.set_content(text)
+    message.add_alternative(html, subtype="html")
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as smtp:
+        if SMTP_STARTTLS:
+            smtp.starttls()
+        smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+        smtp.send_message(message)
+    return True, "Email sent."
+
+
+def send_booking_vouchers(code, room, guest_name, phone, email, checkin, checkout, guests, rooms_required, total, special_request):
+    subject, text, html = booking_voucher(
+        code, room, guest_name, phone, email, checkin, checkout, guests, rooms_required, total, special_request
+    )
+    results = []
+    hotel_subject = f"New Luxmi Hotel booking - {code}"
+    for recipients, mail_subject, label in [
+        ([email], subject, "customer"),
+        ([HOTEL_EMAIL], hotel_subject, "hotel"),
+    ]:
+        try:
+            sent, message = send_email(recipients, mail_subject, text, html)
+        except Exception as exc:
+            sent, message = False, str(exc)
+        results.append({"label": label, "sent": sent, "message": message})
+    return results
+
+
 def login_required():
     if not session.get("admin"):
         return redirect(url_for("login", next=request.path))
@@ -317,7 +412,7 @@ def availability():
         {% for item in results %}{% set room = item.room %}{% set quote = item.quote %}
           <article class="room-card"><img src="{{ asset_base }}{{ room.image }}" alt="{{ room.name }}"><div class="room-body"><h3>{{ room.name }}</h3><p>{{ room.description }}</p>
           {% if quote.available >= rooms_required %}<div class="availability ok">Available: {{ quote.available }} room(s)</div><div class="total">Total: Rs.{{ quote.total }}</div>
-          <form class="confirm-form" method="post" action="{{ url_for('book') }}"><input type="hidden" name="room_type_id" value="{{ room.id }}"><input type="hidden" name="checkin" value="{{ checkin.isoformat() }}"><input type="hidden" name="checkout" value="{{ checkout.isoformat() }}"><input type="hidden" name="guests" value="{{ guests }}"><input type="hidden" name="rooms" value="{{ rooms_required }}"><label>Full Name</label><input type="text" name="guest_name" required><label>Phone</label><input type="tel" name="phone" required><label>Email</label><input type="email" name="email"><label>Special Request</label><textarea name="special_request" rows="3"></textarea><button class="btn primary" type="submit">Confirm Booking</button></form>
+          <form class="confirm-form" method="post" action="{{ url_for('book') }}"><input type="hidden" name="room_type_id" value="{{ room.id }}"><input type="hidden" name="checkin" value="{{ checkin.isoformat() }}"><input type="hidden" name="checkout" value="{{ checkout.isoformat() }}"><input type="hidden" name="guests" value="{{ guests }}"><input type="hidden" name="rooms" value="{{ rooms_required }}"><label>Full Name</label><input type="text" name="guest_name" required><label>Phone</label><input type="tel" name="phone" required><label>Email for Voucher</label><input type="email" name="email" required><label>Special Request</label><textarea name="special_request" rows="3"></textarea><button class="btn primary" type="submit">Confirm Booking</button></form>
           {% else %}<div class="availability no">Not enough rooms available</div>{% endif %}</div></article>
         {% else %}<div class="empty-state">No matching rooms found for these guests.</div>{% endfor %}</div></section>
         """,
@@ -342,8 +437,8 @@ def book():
         phone = request.form.get("phone", "").strip()
         email = request.form.get("email", "").strip()
         special_request = request.form.get("special_request", "").strip()
-        if not guest_name or not phone:
-            raise ValueError("Name and phone number are required.")
+        if not guest_name or not phone or not email:
+            raise ValueError("Name, phone number and email are required.")
         if checkout <= checkin:
             raise ValueError("Check-out must be after check-in.")
         room = get_db().execute("SELECT * FROM room_types WHERE id = ?", (room_id,)).fetchone()
@@ -368,7 +463,17 @@ def book():
         (code, room_id, guest_name, phone, email, checkin.isoformat(), checkout.isoformat(), guests, rooms_required, quote["total"], special_request, datetime.utcnow().isoformat(timespec="seconds")),
     )
     get_db().commit()
-    return page("Booking Confirmed | Luxmi Hotel", "<section class='success-page'><div class='kicker'>Booking Confirmed</div><h1>Your booking is confirmed.</h1><p>Booking code: <strong>{{ code }}</strong></p><p>Room: {{ room.name }}</p><p>Total amount: <strong>Rs.{{ total }}</strong></p><a class='btn primary' href='{{ url_for('index') }}'>Back to Website</a></section>", code=code, room=room, total=quote["total"])
+    email_results = send_booking_vouchers(
+        code, room, guest_name, phone, email, checkin, checkout, guests, rooms_required, quote["total"], special_request
+    )
+    return page(
+        "Booking Confirmed | Luxmi Hotel",
+        "<section class='success-page'><div class='kicker'>Booking Confirmed</div><h1>Your booking is confirmed.</h1><p>Booking code: <strong>{{ code }}</strong></p><p>Room: {{ room.name }}</p><p>Total amount: <strong>Rs.{{ total }}</strong></p><p>Voucher email: {{ voucher_message }}</p><a class='btn primary' href='{{ url_for('index') }}'>Back to Website</a></section>",
+        code=code,
+        room=room,
+        total=quote["total"],
+        voucher_message="Sent to customer and hotel." if all(item["sent"] for item in email_results) else "Booking saved. Email delivery needs SMTP setup or retry.",
+    )
 
 
 @app.route("/group-enquiry", methods=["GET", "POST"])
@@ -506,4 +611,3 @@ def update_group_status(enquiry_id):
 
 if __name__ == "__main__":
     app.run(debug=True)
-
