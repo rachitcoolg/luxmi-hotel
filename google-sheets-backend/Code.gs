@@ -46,6 +46,19 @@ function setup() {
   return "Setup complete. Admin key: " + adminKey;
 }
 
+function rotateAdminKey() {
+  const ss = getSpreadsheet_();
+  const props = PropertiesService.getScriptProperties();
+  const adminKey = Utilities.getUuid().replace(/-/g, "").slice(0, 18);
+  props.setProperty("ADMIN_KEY", adminKey);
+  writeSettings_(ss, adminKey);
+  SpreadsheetApp.flush();
+  Logger.log("New Admin URL: " + ScriptApp.getService().getUrl() + "?adminKey=" + adminKey);
+  Logger.log("New Admin Key: " + adminKey);
+  Logger.log("Spreadsheet URL: " + ss.getUrl());
+  return "Admin key rotated: " + adminKey;
+}
+
 function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
   if (params.health === "1") return text_("OK");
