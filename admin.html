@@ -95,6 +95,12 @@
       margin-top: 24px;
     }
 
+    .admin-links {
+      display: grid;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
     .btn {
       display: inline-flex;
       align-items: center;
@@ -116,10 +122,15 @@
     <img class="logo" src="assets/luxmi-logo-dark.png" alt="Luxmi Hotel logo">
     <div class="kicker">Booking Management</div>
     <h1>Luxmi Hotel Admin</h1>
-    <p>Use this page to open the online backend for bookings, room inventory, price updates and group enquiries.</p>
-    <a class="link-box" href="https://luxmi-hotel-booking.onrender.com/admin" target="_blank" rel="noopener">https://luxmi-hotel-booking.onrender.com/admin</a>
+    <p>Use this page to open the online booking backend for reservations, room inventory, price updates and group enquiries.</p>
+    <div class="admin-links">
+      <a class="link-box" href="https://luxmi-hotel-booking.onrender.com/" target="_blank" rel="noopener">Online booking page: https://luxmi-hotel-booking.onrender.com/</a>
+      <a class="link-box" href="https://luxmi-hotel-booking.onrender.com/admin" target="_blank" rel="noopener">Admin login: https://luxmi-hotel-booking.onrender.com/admin</a>
+      <a class="link-box" href="https://luxmi-hotel-booking.onrender.com/group-enquiry" target="_blank" rel="noopener">Group enquiry: https://luxmi-hotel-booking.onrender.com/group-enquiry</a>
+    </div>
     <div class="actions">
       <a class="btn primary" href="https://luxmi-hotel-booking.onrender.com/admin" target="_blank" rel="noopener">Open Booking Admin</a>
+      <a class="btn secondary" href="https://luxmi-hotel-booking.onrender.com/" target="_blank" rel="noopener">Open Online Booking</a>
       <a class="btn secondary" href="index.html">Back to Website</a>
     </div>
     <p class="note">Keep the admin password private. If the backend is not deployed yet, deploy the Render service using the GitHub repo folder <strong>booking-backend</strong>.</p>
