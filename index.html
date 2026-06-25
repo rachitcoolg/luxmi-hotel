@@ -232,7 +232,7 @@
     .about {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      align-items: center;
+      align-items: start;
       gap: 56px;
     }
 
@@ -243,6 +243,11 @@
       min-height: 420px;
       box-shadow: var(--shadow);
       background: var(--soft);
+    }
+
+    .photo-frame img {
+      min-height: 420px;
+      object-position: center;
     }
 
     .feature-list {
@@ -698,6 +703,7 @@
       .section-head { margin-bottom: 24px; }
       .feature-list, .room-grid, .amenity-grid, .form-grid, .footer-grid { grid-template-columns: 1fr; }
       .photo-frame { min-height: 300px; }
+      .photo-frame img { min-height: 300px; }
       .card-body { padding: 20px; }
       .card h3 { font-size: 27px; }
       .price-row {
