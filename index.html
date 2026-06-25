@@ -115,6 +115,7 @@
     }
 
     .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { cursor: wait; opacity: 0.72; transform: none; }
     .btn-primary { color: var(--white); background: var(--wine); }
     .btn-primary:hover { background: var(--wine-dark); }
     .btn-light { color: var(--wine); background: var(--white); border-color: rgba(255,255,255,0.65); }
@@ -191,7 +192,7 @@
       position: relative;
       z-index: 5;
       display: grid;
-      grid-template-columns: repeat(5, 1fr) auto;
+      grid-template-columns: repeat(6, 1fr) auto;
       gap: 12px;
       padding: 18px;
       background: var(--white);
@@ -521,6 +522,19 @@
     .field.full { grid-column: 1 / -1; }
     textarea { min-height: 104px; resize: vertical; }
     .form-note { color: var(--muted); font-size: 13px; margin-top: 12px; }
+    .form-status {
+      display: none;
+      grid-column: 1 / -1;
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .quick-book .form-status { margin-top: 0; }
+    .form-status.success { display: block; color: #126437; background: #e9f8ef; }
+    .form-status.error { display: block; color: var(--wine); background: #fae8ea; }
 
     .photo-modal {
       position: fixed;
@@ -806,6 +820,7 @@
         <li><a href="#amenities">Amenities</a></li>
         <li><a href="#gallery">Gallery</a></li>
         <li><a href="#location">Location</a></li>
+        <li><a href="#group-enquiry">Group</a></li>
         <li><a href="#contact">Contact</a></li>
       </ul>
       <a class="btn btn-primary" href="#booking">Book Now</a>
@@ -817,6 +832,7 @@
       <a href="#amenities" onclick="toggleMenu()">Amenities</a>
       <a href="#gallery" onclick="toggleMenu()">Gallery</a>
       <a href="#location" onclick="toggleMenu()">Location</a>
+      <a href="#group-enquiry" onclick="toggleMenu()">Group Enquiry</a>
       <a href="#contact" onclick="toggleMenu()">Contact</a>
     </div>
   </nav>
@@ -844,6 +860,10 @@
         <input id="qb-phone" type="tel" placeholder="+91 00000 00000" required>
       </div>
       <div class="field">
+        <label for="qb-email">Email</label>
+        <input id="qb-email" type="email" placeholder="you@email.com" required>
+      </div>
+      <div class="field">
         <label for="qb-date">Check-in</label>
         <input id="qb-date" type="date" required>
       </div>
@@ -860,6 +880,7 @@
         </select>
       </div>
       <button class="btn btn-primary" type="submit">Send Enquiry</button>
+      <p class="form-status" id="booking-status" role="status"></p>
     </form>
 
     <section id="about">
@@ -1030,12 +1051,69 @@
       </div>
     </section>
 
+    <section class="rooms" id="group-enquiry">
+      <div class="wrap contact-grid">
+        <div>
+          <div class="kicker">Group Enquiry</div>
+          <h2>Planning a family or group stay?</h2>
+          <p class="lead">Share your dates, number of persons and room requirement. The enquiry will go to the hotel record sheet and our team will confirm availability.</p>
+          <div class="contact-lines">
+            <div><strong>Best for</strong>Wedding guests, family functions, group travellers and pilgrim groups.</div>
+            <div><strong>Group room option</strong>Deluxe Four Bed AC for up to 5 persons.</div>
+          </div>
+        </div>
+        <form class="contact-card form-grid" onsubmit="sendGroupEnquiry(event)">
+          <div class="field">
+            <label for="group-name">Full Name</label>
+            <input id="group-name" type="text" placeholder="Your name" required>
+          </div>
+          <div class="field">
+            <label for="group-phone">Phone</label>
+            <input id="group-phone" type="tel" placeholder="+91 00000 00000" required>
+          </div>
+          <div class="field">
+            <label for="group-email">Email</label>
+            <input id="group-email" type="email" placeholder="you@email.com" required>
+          </div>
+          <div class="field">
+            <label for="group-guests">Persons</label>
+            <input id="group-guests" type="number" min="1" value="10" required>
+          </div>
+          <div class="field">
+            <label for="group-arrival">Arrival</label>
+            <input id="group-arrival" type="date">
+          </div>
+          <div class="field">
+            <label for="group-departure">Departure</label>
+            <input id="group-departure" type="date">
+          </div>
+          <div class="field">
+            <label for="group-rooms">Rooms Needed</label>
+            <input id="group-rooms" type="number" min="1" value="2">
+          </div>
+          <div class="field">
+            <label for="group-purpose">Purpose</label>
+            <input id="group-purpose" type="text" placeholder="Family function, pilgrimage, business">
+          </div>
+          <div class="field full">
+            <label for="group-message">Message</label>
+            <textarea id="group-message" placeholder="Tell us room mix, arrival time or any special request"></textarea>
+          </div>
+          <div class="field full">
+            <button class="btn btn-primary" type="submit">Send Group Enquiry</button>
+            <p class="form-note">This group enquiry will be saved in the hotel Google Sheet and emailed to the hotel.</p>
+          </div>
+          <p class="form-status" id="group-status" role="status"></p>
+        </form>
+      </div>
+    </section>
+
     <section id="contact">
       <div class="wrap contact-grid">
         <div>
           <div class="kicker">Contact</div>
           <h2>Book directly with Luxmi Hotel.</h2>
-          <p class="lead">For the fastest confirmation, call or send your booking details on WhatsApp.</p>
+          <p class="lead">Send your booking details here. The hotel will receive the enquiry in the booking sheet and you will receive a confirmation email.</p>
           <div class="contact-lines">
             <div><strong>Phone</strong><a href="tel:+917007417970">+91 70074 17970</a><br><a href="tel:+917054384239">+91 70543 84239</a><br><a href="tel:+919026088927">+91 90260 88927</a></div>
             <a href="https://wa.me/917007417970" target="_blank" rel="noopener"><strong>WhatsApp</strong>+91 70074 17970</a>
@@ -1053,12 +1131,20 @@
             <input id="phone" type="tel" placeholder="+91 00000 00000" required>
           </div>
           <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="you@email.com" required>
+          </div>
+          <div class="field">
             <label for="checkin">Check-in</label>
             <input id="checkin" type="date">
           </div>
           <div class="field">
             <label for="checkout">Check-out</label>
             <input id="checkout" type="date">
+          </div>
+          <div class="field">
+            <label for="contact-guests">Persons</label>
+            <input id="contact-guests" type="number" min="1" value="2" required>
           </div>
           <div class="field full">
             <label for="room">Room Type</label>
@@ -1074,8 +1160,9 @@
           </div>
           <div class="field full">
             <button class="btn btn-primary" type="submit">Send Booking Enquiry</button>
-            <p class="form-note">Submitting this form opens WhatsApp with the booking details filled in.</p>
+            <p class="form-note">This booking enquiry will be saved in the hotel Google Sheet and emailed to the hotel.</p>
           </div>
+          <p class="form-status" id="contact-status" role="status"></p>
         </form>
       </div>
     </section>
@@ -1137,6 +1224,7 @@
 
   <script>
     const HOTEL_WHATSAPP_NUMBER = "917007417970";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwN09jObid5UTMDhlht_LwD-FJK7Ib5KE6duqQRY3nZ6KtYBpyp28H5oxgOmoea6MBVbg/exec";
     const roomGalleries = {
       standard: {
         title: "Standard Double Room NON AC",
@@ -1180,7 +1268,7 @@
 
     function setMinimumDates() {
       const today = new Date().toISOString().split("T")[0];
-      ["qb-date", "checkin", "checkout"].forEach((id) => {
+      ["qb-date", "checkin", "checkout", "group-arrival", "group-departure"].forEach((id) => {
         const input = document.getElementById(id);
         if (input) input.min = today;
       });
@@ -1192,6 +1280,49 @@
         if (el && el.value) return el.value.trim();
       }
       return "";
+    }
+
+    function scopedValue(form, id) {
+      const el = form.querySelector("#" + id);
+      return el && el.value ? el.value.trim() : "";
+    }
+
+    function showFormStatus(id, message, type) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = message;
+      el.className = "form-status " + (type || "success");
+    }
+
+    function googleBackendReady() {
+      return GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes("PASTE_GOOGLE");
+    }
+
+    async function submitToGoogleSheet(payload) {
+      if (!googleBackendReady()) return false;
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      return true;
+    }
+
+    function openWhatsAppBooking(payload) {
+      const text = [
+        "Hello Luxmi Hotel, I would like to book a room.",
+        "Name: " + payload.name,
+        "Phone: " + payload.phone,
+        payload.email ? "Email: " + payload.email : "",
+        "Room: " + payload.room,
+        "Persons: " + (payload.guests || "Not mentioned"),
+        "Check-in: " + (payload.checkin || "Not decided"),
+        "Check-out: " + (payload.checkout || "Not decided"),
+        payload.message ? "Message: " + payload.message : ""
+      ].filter(Boolean).join("\n");
+
+      window.open("https://wa.me/" + HOTEL_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(text), "_blank", "noopener");
     }
 
     function openPhotoViewer(roomKey) {
@@ -1222,29 +1353,96 @@
       document.body.style.overflow = "";
     }
 
-    function sendBooking(event) {
+    async function sendBooking(event) {
       event.preventDefault();
 
-      const name = readValue(["qb-name", "name"]);
-      const phone = readValue(["qb-phone", "phone"]);
-      const checkin = readValue(["qb-date", "checkin"]);
-      const checkout = readValue(["checkout"]);
-      const guests = readValue(["qb-guests"]);
-      const room = readValue(["qb-room", "room"]);
-      const message = readValue(["message"]);
+      const form = event.target;
+      const isQuickForm = form.id === "booking";
+      const statusId = isQuickForm ? "booking-status" : "contact-status";
+      const button = form.querySelector("button[type='submit']");
+      const payload = {
+        action: "booking",
+        source: isQuickForm ? "Quick booking form" : "Contact booking form",
+        name: scopedValue(form, isQuickForm ? "qb-name" : "name"),
+        phone: scopedValue(form, isQuickForm ? "qb-phone" : "phone"),
+        email: scopedValue(form, isQuickForm ? "qb-email" : "email"),
+        checkin: scopedValue(form, isQuickForm ? "qb-date" : "checkin"),
+        checkout: isQuickForm ? "" : scopedValue(form, "checkout"),
+        guests: scopedValue(form, isQuickForm ? "qb-guests" : "contact-guests"),
+        room: scopedValue(form, isQuickForm ? "qb-room" : "room"),
+        message: isQuickForm ? "" : scopedValue(form, "message")
+      };
 
-      const text = [
-        "Hello Luxmi Hotel, I would like to book a room.",
-        "Name: " + name,
-        "Phone: " + phone,
-        "Room: " + room,
-        "Persons: " + (guests || "Not mentioned"),
-        "Check-in: " + (checkin || "Not decided"),
-        "Check-out: " + (checkout || "Not decided"),
-        message ? "Message: " + message : ""
-      ].filter(Boolean).join("\n");
+      try {
+        if (button) button.disabled = true;
+        showFormStatus(statusId, "Sending your enquiry...", "success");
+        const sentToSheet = await submitToGoogleSheet(payload);
+        if (sentToSheet) {
+          showFormStatus(statusId, "Enquiry sent. Please check your email for the confirmation copy.", "success");
+          form.reset();
+          setMinimumDates();
+          return;
+        }
 
-      window.open("https://wa.me/" + HOTEL_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(text), "_blank", "noopener");
+        openWhatsAppBooking(payload);
+        showFormStatus(statusId, "Google backend is not connected yet, so WhatsApp opened with your details.", "error");
+      } catch (_err) {
+        openWhatsAppBooking(payload);
+        showFormStatus(statusId, "Could not reach the booking backend. WhatsApp opened as fallback.", "error");
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+
+    async function sendGroupEnquiry(event) {
+      event.preventDefault();
+
+      const form = event.target;
+      const button = form.querySelector("button[type='submit']");
+      const payload = {
+        action: "group",
+        source: "Website group enquiry form",
+        name: scopedValue(form, "group-name"),
+        phone: scopedValue(form, "group-phone"),
+        email: scopedValue(form, "group-email"),
+        arrival: scopedValue(form, "group-arrival"),
+        departure: scopedValue(form, "group-departure"),
+        guests: scopedValue(form, "group-guests"),
+        rooms: scopedValue(form, "group-rooms"),
+        purpose: scopedValue(form, "group-purpose"),
+        message: scopedValue(form, "group-message")
+      };
+
+      try {
+        if (button) button.disabled = true;
+        showFormStatus("group-status", "Sending group enquiry...", "success");
+        const sentToSheet = await submitToGoogleSheet(payload);
+        if (sentToSheet) {
+          showFormStatus("group-status", "Group enquiry sent. The hotel team will contact you soon.", "success");
+          form.reset();
+          setMinimumDates();
+          return;
+        }
+
+        const text = [
+          "Hello Luxmi Hotel, I have a group booking enquiry.",
+          "Name: " + payload.name,
+          "Phone: " + payload.phone,
+          payload.email ? "Email: " + payload.email : "",
+          "Persons: " + payload.guests,
+          "Rooms needed: " + payload.rooms,
+          "Arrival: " + (payload.arrival || "Not decided"),
+          "Departure: " + (payload.departure || "Not decided"),
+          payload.purpose ? "Purpose: " + payload.purpose : "",
+          payload.message ? "Message: " + payload.message : ""
+        ].filter(Boolean).join("\n");
+        window.open("https://wa.me/" + HOTEL_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(text), "_blank", "noopener");
+        showFormStatus("group-status", "Google backend is not connected yet, so WhatsApp opened with your details.", "error");
+      } catch (_err) {
+        showFormStatus("group-status", "Could not reach the group enquiry backend. Please try WhatsApp or call the hotel.", "error");
+      } finally {
+        if (button) button.disabled = false;
+      }
     }
 
     setMinimumDates();
