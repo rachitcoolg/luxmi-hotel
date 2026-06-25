@@ -30,5 +30,5 @@ services:
         sync: false
       - key: MAIL_FROM
         value: luxmihotelbooking@gmail.com
-      - key: HOTEL_EMAIL
-        value: luxmihotelbooking@gmail.com
+      - key: HOTEL_EMAILS
+        value: luxmihotelbooking@gmail.com,luxmihotel2017@gmail.com,rachit.coolg@gmail.com
