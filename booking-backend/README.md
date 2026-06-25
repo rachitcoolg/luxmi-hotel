@@ -13,10 +13,10 @@ Online booking/admin backend for Luxmi Hotel.
 - `ADMIN_PASSWORD`: strong admin password
 - `SECRET_KEY`: long random secret
 - `DATABASE_PATH`: `/var/data/luxmi_booking.db` when using a Render persistent disk
-- `SMTP_HOST`: `smtp.gmail.com`
+- `SMTP_HOST`: `smtp-relay.brevo.com`
 - `SMTP_PORT`: `587`
-- `SMTP_USERNAME`: `luxmihotelbooking@gmail.com`
-- `SMTP_PASSWORD`: Gmail app password for `luxmihotelbooking@gmail.com`
+- `SMTP_USERNAME`: Brevo SMTP login, for example `afea85001@smtp-brevo.com`
+- `SMTP_PASSWORD`: Brevo SMTP key
 - `MAIL_FROM`: `luxmihotelbooking@gmail.com`
 - `HOTEL_EMAIL`: `luxmihotelbooking@gmail.com`
 
