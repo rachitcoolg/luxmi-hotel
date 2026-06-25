@@ -16,11 +16,25 @@ SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
 SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "afea85001@smtp-brevo.com")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD") or os.environ.get("MAIL_PASSWORD")
 MAIL_FROM = os.environ.get("MAIL_FROM", SMTP_USERNAME)
-HOTEL_EMAIL = os.environ.get("HOTEL_EMAIL", "luxmihotelbooking@gmail.com")
+HOTEL_EMAILS_RAW = os.environ.get(
+    "HOTEL_EMAILS",
+    os.environ.get(
+        "HOTEL_EMAIL",
+        "luxmihotelbooking@gmail.com,luxmihotel2017@gmail.com,rachit.coolg@gmail.com",
+    ),
+)
 SMTP_STARTTLS = os.environ.get("SMTP_STARTTLS", "true").lower() not in {"0", "false", "no"}
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-this-secret-before-deploy")
+
+
+def parse_email_list(value):
+    normalized = value.replace(";", ",").replace("\n", ",")
+    return [email.strip() for email in normalized.split(",") if email.strip()]
+
+
+HOTEL_EMAILS = parse_email_list(HOTEL_EMAILS_RAW)
 
 
 ROOM_SEED = [
@@ -343,7 +357,7 @@ def send_booking_vouchers(code, room, guest_name, phone, email, checkin, checkou
     hotel_subject = f"New Luxmi Hotel booking - {code}"
     for recipients, mail_subject, label in [
         ([email], subject, "customer"),
-        ([HOTEL_EMAIL], hotel_subject, "hotel"),
+        (HOTEL_EMAILS, hotel_subject, "hotel"),
     ]:
         try:
             sent, message = send_email(recipients, mail_subject, text, html)
