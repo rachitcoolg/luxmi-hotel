@@ -13,10 +13,10 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "luxmi-admin-2026")
 ASSET_BASE = "https://luxmihotel.com/assets/"
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "luxmihotel2017@gmail.com")
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "luxmihotelbooking@gmail.com")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD") or os.environ.get("MAIL_PASSWORD")
 MAIL_FROM = os.environ.get("MAIL_FROM", SMTP_USERNAME)
-HOTEL_EMAIL = os.environ.get("HOTEL_EMAIL", "luxmihotel2017@gmail.com")
+HOTEL_EMAIL = os.environ.get("HOTEL_EMAIL", "luxmihotelbooking@gmail.com")
 SMTP_STARTTLS = os.environ.get("SMTP_STARTTLS", "true").lower() not in {"0", "false", "no"}
 
 app = Flask(__name__)
@@ -100,7 +100,7 @@ BASE_HTML = """
   </main>
   <footer class="footer">
     <div><strong>Luxmi Hotel</strong><br>15, Swami Vivekanand Marg, Johnston Ganj, Chauraha, Prayagraj, Uttar Pradesh 211003</div>
-    <div><a href="https://wa.me/917007417970">WhatsApp</a> | <a href="mailto:luxmihotel2017@gmail.com">luxmihotel2017@gmail.com</a></div>
+    <div><a href="https://wa.me/917007417970">WhatsApp</a> | <a href="mailto:luxmihotelbooking@gmail.com">luxmihotelbooking@gmail.com</a></div>
   </footer>
 </body>
 </html>
