@@ -2,6 +2,7 @@ const SHEETS = {
   settings: "Settings",
   rooms: "Rooms",
   inventory: "Inventory",
+  calendar: "Inventory Calendar",
   bookings: "Bookings",
   groups: "Group Enquiries",
 };
@@ -34,10 +35,12 @@ function setup() {
   ensureSheet_(ss, SHEETS.settings, ["Key", "Value"]);
   ensureSheet_(ss, SHEETS.rooms, ["Room Type", "Base Price", "Max Persons", "Total Rooms", "Active", "Notes"]);
   ensureSheet_(ss, SHEETS.inventory, ["Date", "Room Type", "Available Rooms", "Price Override", "Notes", "Updated At"]);
+  ensureSheet_(ss, SHEETS.calendar, ["Date"]);
   ensureSheet_(ss, SHEETS.bookings, ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Message", "Source"]);
   ensureSheet_(ss, SHEETS.groups, ["Timestamp", "Enquiry ID", "Status", "Name", "Phone", "Email", "Arrival", "Departure", "Persons", "Rooms", "Purpose", "Message", "Source"]);
 
   seedRooms_(ss.getSheetByName(SHEETS.rooms));
+  buildInventoryCalendar_(ss, 180);
   writeSettings_(ss, adminKey);
   SpreadsheetApp.flush();
   Logger.log("Admin URL: " + ScriptApp.getService().getUrl() + "?adminKey=" + adminKey);
@@ -57,6 +60,16 @@ function rotateAdminKey() {
   Logger.log("New Admin Key: " + adminKey);
   Logger.log("Spreadsheet URL: " + ss.getUrl());
   return "Admin key rotated: " + adminKey;
+}
+
+function createInventoryCalendar() {
+  const ss = getSpreadsheet_();
+  setupIfNeeded_(ss);
+  seedRooms_(ss.getSheetByName(SHEETS.rooms));
+  buildInventoryCalendar_(ss, 180);
+  SpreadsheetApp.flush();
+  Logger.log("Inventory calendar ready: " + ss.getUrl());
+  return "Inventory calendar created for 180 days.";
 }
 
 function doGet(e) {
@@ -216,8 +229,10 @@ function adminPage_(adminKey, message) {
   const bookings = readObjects_(ss.getSheetByName(SHEETS.bookings)).reverse().slice(0, 80);
   const groups = readObjects_(ss.getSheetByName(SHEETS.groups)).reverse().slice(0, 60);
   const inventory = readObjects_(ss.getSheetByName(SHEETS.inventory)).reverse().slice(0, 80);
+  const calendar = ss.getSheetByName(SHEETS.calendar);
   const url = ScriptApp.getService().getUrl();
   const sheetUrl = ss.getUrl();
+  const calendarUrl = sheetUrl + "#gid=" + (calendar ? calendar.getSheetId() : "");
 
   return HtmlService.createHtmlOutput(`
     <!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -228,8 +243,13 @@ function adminPage_(adminKey, message) {
       <h1>Luxmi Hotel Admin</h1>
       <p class="small">Web app URL: ${escapeHtml_(url)} | Admin key: ${escapeHtml_(adminKey)}</p>
       <p><a href="${escapeHtml_(sheetUrl)}" target="_blank" rel="noopener">Open Google Sheet records</a></p>
+      <p><a href="${escapeHtml_(calendarUrl)}" target="_blank" rel="noopener">Open Inventory Calendar</a></p>
       ${message ? `<p class="msg">${escapeHtml_(message)}</p>` : ""}
       <section><h2>Rooms, Prices and Total Inventory</h2><div class="grid">${rooms.map(roomForm_(adminKey, url)).join("")}</div></section>
+      <section><h2>Inventory Calendar</h2>
+        <p class="small">Use the Google Sheet calendar to manage daily inventory. Edit the yellow Blocked/Sold and Rate cells. Remaining rooms calculate automatically.</p>
+        <p><a href="${escapeHtml_(calendarUrl)}" target="_blank" rel="noopener">Open date-wise inventory calendar</a></p>
+      </section>
       <section><h2>Date-wise Inventory / Price Override</h2>
         <form method="post" action="${url}">
           <input type="hidden" name="action" value="update-inventory"><input type="hidden" name="adminKey" value="${escapeHtml_(adminKey)}">
@@ -315,7 +335,13 @@ function updateBookingStatus_(data) {
 }
 
 function setupIfNeeded_(ss) {
-  if (!ss.getSheetByName(SHEETS.bookings)) setup();
+  ensureSheet_(ss, SHEETS.settings, ["Key", "Value"]);
+  ensureSheet_(ss, SHEETS.rooms, ["Room Type", "Base Price", "Max Persons", "Total Rooms", "Active", "Notes"]);
+  ensureSheet_(ss, SHEETS.inventory, ["Date", "Room Type", "Available Rooms", "Price Override", "Notes", "Updated At"]);
+  ensureSheet_(ss, SHEETS.calendar, ["Date"]);
+  ensureSheet_(ss, SHEETS.bookings, ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Message", "Source"]);
+  ensureSheet_(ss, SHEETS.groups, ["Timestamp", "Enquiry ID", "Status", "Name", "Phone", "Email", "Arrival", "Departure", "Persons", "Rooms", "Purpose", "Message", "Source"]);
+  seedRooms_(ss.getSheetByName(SHEETS.rooms));
 }
 
 function ensureSheet_(ss, name, headers) {
@@ -327,10 +353,110 @@ function ensureSheet_(ss, name, headers) {
 }
 
 function seedRooms_(sheet) {
-  if (sheet.getLastRow() > 1) return;
-  sheet.appendRow(["Standard Double Room NON AC", 800, 3, 1, "Yes", "Air cooler"]);
-  sheet.appendRow(["Deluxe Double Room AC", 1200, 3, 1, "Yes", "AC"]);
-  sheet.appendRow(["Deluxe Four Bed AC", 1800, 5, 1, "Yes", "Family room"]);
+  const desired = [
+    ["Standard Double Room NON AC", 800, 3, 8, "Yes", "Air cooler"],
+    ["Deluxe Double Room AC", 1200, 3, 11, "Yes", "AC"],
+    ["Deluxe Four Bed AC", 1800, 5, 5, "Yes", "Family room"],
+  ];
+  const values = sheet.getDataRange().getValues();
+  const existing = {};
+  for (let i = 1; i < values.length; i += 1) existing[String(values[i][0])] = i + 1;
+  desired.forEach((room) => {
+    const row = existing[room[0]];
+    if (row) sheet.getRange(row, 2, 1, 4).setValues([[room[1], room[2], room[3], room[4]]]);
+    else sheet.appendRow(room);
+  });
+}
+
+function buildInventoryCalendar_(ss, days) {
+  const sheet = ss.getSheetByName(SHEETS.calendar) || ss.insertSheet(SHEETS.calendar);
+  sheet.clear();
+
+  const rooms = getRoomDefinitions_(ss);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const headers = [
+    "Date",
+    "Day",
+    rooms[0].shortName + " Total",
+    rooms[0].shortName + " Blocked/Sold",
+    rooms[0].shortName + " Remaining",
+    rooms[0].shortName + " Rate",
+    rooms[1].shortName + " Total",
+    rooms[1].shortName + " Blocked/Sold",
+    rooms[1].shortName + " Remaining",
+    rooms[1].shortName + " Rate",
+    rooms[2].shortName + " Total",
+    rooms[2].shortName + " Blocked/Sold",
+    rooms[2].shortName + " Remaining",
+    rooms[2].shortName + " Rate",
+    "Notes",
+  ];
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  const rows = [];
+  for (let i = 0; i < days; i += 1) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    const rowNumber = i + 2;
+    rows.push([
+      date,
+      '=TEXT(A' + rowNumber + ',"ddd")',
+      rooms[0].totalRooms,
+      0,
+      "=MAX(0,C" + rowNumber + "-D" + rowNumber + ")",
+      rooms[0].basePrice,
+      rooms[1].totalRooms,
+      0,
+      "=MAX(0,G" + rowNumber + "-H" + rowNumber + ")",
+      rooms[1].basePrice,
+      rooms[2].totalRooms,
+      0,
+      "=MAX(0,K" + rowNumber + "-L" + rowNumber + ")",
+      rooms[2].basePrice,
+      "",
+    ]);
+  }
+
+  sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#7a1720").setFontColor("#ffffff");
+  sheet.getRange(2, 1, rows.length, 1).setNumberFormat("yyyy-mm-dd");
+  sheet.getRange(2, 3, rows.length, 12).setNumberFormat("0");
+  sheet.getRange(2, 6, rows.length, 1).setNumberFormat("₹#,##0");
+  sheet.getRange(2, 10, rows.length, 1).setNumberFormat("₹#,##0");
+  sheet.getRange(2, 14, rows.length, 1).setNumberFormat("₹#,##0");
+  sheet.getRange(2, 4, rows.length, 1).setBackground("#fff2cc");
+  sheet.getRange(2, 6, rows.length, 1).setBackground("#fff2cc");
+  sheet.getRange(2, 8, rows.length, 1).setBackground("#fff2cc");
+  sheet.getRange(2, 10, rows.length, 1).setBackground("#fff2cc");
+  sheet.getRange(2, 12, rows.length, 1).setBackground("#fff2cc");
+  sheet.getRange(2, 14, rows.length, 1).setBackground("#fff2cc");
+  sheet.getRange(2, 5, rows.length, 1).setBackground("#e2f0d9");
+  sheet.getRange(2, 9, rows.length, 1).setBackground("#e2f0d9");
+  sheet.getRange(2, 13, rows.length, 1).setBackground("#e2f0d9");
+  sheet.autoResizeColumns(1, headers.length);
+  sheet.getRange("A1:O1").createFilter();
+}
+
+function getRoomDefinitions_(ss) {
+  const rows = readObjects_(ss.getSheetByName(SHEETS.rooms));
+  const fallback = [
+    { roomType: "Standard Double Room NON AC", shortName: "Standard Non AC", basePrice: 800, totalRooms: 8 },
+    { roomType: "Deluxe Double Room AC", shortName: "Deluxe Double AC", basePrice: 1200, totalRooms: 11 },
+    { roomType: "Deluxe Four Bed AC", shortName: "Four Bed AC", basePrice: 1800, totalRooms: 5 },
+  ];
+  if (!rows.length) return fallback;
+  return fallback.map((item) => {
+    const found = rows.find((row) => row["Room Type"] === item.roomType);
+    return {
+      roomType: item.roomType,
+      shortName: item.shortName,
+      basePrice: Number(found && found["Base Price"] ? found["Base Price"] : item.basePrice),
+      totalRooms: Number(found && found["Total Rooms"] ? found["Total Rooms"] : item.totalRooms),
+    };
+  });
 }
 
 function writeSettings_(ss, adminKey) {
