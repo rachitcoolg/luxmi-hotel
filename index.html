@@ -522,6 +522,41 @@
     .field.full { grid-column: 1 / -1; }
     textarea { min-height: 104px; resize: vertical; }
     .form-note { color: var(--muted); font-size: 13px; margin-top: 12px; }
+    .group-plan {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border: 1px solid #dec798;
+      border-radius: var(--radius);
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    .group-plan strong {
+      color: var(--wine);
+      font-size: 16px;
+    }
+
+    .group-plan span {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .group-plan ul {
+      display: grid;
+      gap: 5px;
+      padding-left: 18px;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .group-plan.warning {
+      border-color: rgba(122,23,32,0.28);
+      background: #fae8ea;
+    }
+
     .form-status {
       display: none;
       grid-column: 1 / -1;
@@ -1062,7 +1097,8 @@
           <p class="lead">Share your dates, number of persons and room requirement. The enquiry will go to the hotel record sheet and our team will confirm availability.</p>
           <div class="contact-lines">
             <div><strong>Best for</strong>Wedding guests, family functions, group travellers and pilgrim groups.</div>
-            <div><strong>Group room option</strong>Deluxe Four Bed AC for up to 5 persons.</div>
+            <div><strong>Group capacity</strong>8 non-AC rooms for up to 24 guests, plus AC room options for larger groups.</div>
+            <div><strong>AC group capacity</strong>Up to 53 guests regularly, and 55 guests with hotel confirmation.</div>
           </div>
         </div>
         <form class="contact-card form-grid" onsubmit="sendGroupEnquiry(event)">
@@ -1083,6 +1119,14 @@
             <input id="group-guests" type="number" min="1" value="10" required>
           </div>
           <div class="field">
+            <label for="group-preference">Room Preference</label>
+            <select id="group-preference" required>
+              <option value="non-ac">Non-AC preferred</option>
+              <option value="ac">AC rooms only</option>
+              <option value="flexible">Flexible / best fit</option>
+            </select>
+          </div>
+          <div class="field">
             <label for="group-arrival">Arrival</label>
             <input id="group-arrival" type="date">
           </div>
@@ -1091,12 +1135,11 @@
             <input id="group-departure" type="date">
           </div>
           <div class="field">
-            <label for="group-rooms">Rooms Needed</label>
-            <input id="group-rooms" type="number" min="1" value="2">
-          </div>
-          <div class="field">
             <label for="group-purpose">Purpose</label>
             <input id="group-purpose" type="text" placeholder="Family function, pilgrimage, business">
+          </div>
+          <div class="field full">
+            <div class="group-plan" id="group-plan" aria-live="polite"></div>
           </div>
           <div class="field full">
             <label for="group-message">Message</label>
@@ -1228,6 +1271,12 @@
   <script>
     const HOTEL_WHATSAPP_NUMBER = "917007417970";
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwN09jObid5UTMDhlht_LwD-FJK7Ib5KE6duqQRY3nZ6KtYBpyp28H5oxgOmoea6MBVbg/exec";
+    const GROUP_INVENTORY = {
+      nonAc: { label: "Standard Non-AC rooms", rooms: 8, occupancy: 3 },
+      acQuad: { label: "AC quad occupancy rooms", rooms: 5, occupancy: 4 },
+      acTriple: { label: "AC triple occupancy rooms", rooms: 11, occupancy: 3 },
+      acExtraMax: 2
+    };
     const roomGalleries = {
       standard: {
         title: "Standard Double Room NON AC",
@@ -1298,6 +1347,169 @@
 
     function googleBackendReady() {
       return GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes("PASTE_GOOGLE");
+    }
+
+    function plural(value, word) {
+      return value + " " + word + (value === 1 ? "" : "s");
+    }
+
+    function allocateAcRooms(guests) {
+      const regularCapacity = (GROUP_INVENTORY.acQuad.rooms * GROUP_INVENTORY.acQuad.occupancy) + (GROUP_INVENTORY.acTriple.rooms * GROUP_INVENTORY.acTriple.occupancy);
+      const maxWithAdjustment = regularCapacity + GROUP_INVENTORY.acExtraMax;
+
+      if (guests > maxWithAdjustment) {
+        return {
+          ok: false,
+          lines: ["AC capacity is up to 53 guests regularly, and up to 55 guests only with hotel confirmation."],
+          rooms: 0,
+          capacity: regularCapacity,
+          extraGuests: 0
+        };
+      }
+
+      const regularGuests = Math.min(guests, regularCapacity);
+      let quadRooms = Math.min(GROUP_INVENTORY.acQuad.rooms, Math.floor(regularGuests / GROUP_INVENTORY.acQuad.occupancy));
+      let remaining = regularGuests - (quadRooms * GROUP_INVENTORY.acQuad.occupancy);
+
+      if (remaining > GROUP_INVENTORY.acTriple.rooms * GROUP_INVENTORY.acTriple.occupancy) {
+        quadRooms = GROUP_INVENTORY.acQuad.rooms;
+        remaining = regularGuests - (quadRooms * GROUP_INVENTORY.acQuad.occupancy);
+      }
+
+      const tripleRooms = Math.min(GROUP_INVENTORY.acTriple.rooms, Math.ceil(Math.max(remaining, 0) / GROUP_INVENTORY.acTriple.occupancy));
+      const capacity = (quadRooms * GROUP_INVENTORY.acQuad.occupancy) + (tripleRooms * GROUP_INVENTORY.acTriple.occupancy);
+      const extraGuests = Math.max(guests - regularCapacity, 0);
+      const lines = [];
+
+      if (quadRooms) lines.push(plural(quadRooms, "AC quad occupancy room") + " for up to " + (quadRooms * GROUP_INVENTORY.acQuad.occupancy) + " guests");
+      if (tripleRooms) lines.push(plural(tripleRooms, "AC triple occupancy room") + " for up to " + (tripleRooms * GROUP_INVENTORY.acTriple.occupancy) + " guests");
+      if (extraGuests) lines.push(plural(extraGuests, "extra guest") + " by hotel confirmation");
+
+      return {
+        ok: true,
+        lines,
+        rooms: quadRooms + tripleRooms,
+        capacity: capacity + extraGuests,
+        extraGuests
+      };
+    }
+
+    function buildGroupPlan(guests, preference) {
+      const nonAcCapacity = GROUP_INVENTORY.nonAc.rooms * GROUP_INVENTORY.nonAc.occupancy;
+      const acRegularCapacity = (GROUP_INVENTORY.acQuad.rooms * GROUP_INVENTORY.acQuad.occupancy) + (GROUP_INVENTORY.acTriple.rooms * GROUP_INVENTORY.acTriple.occupancy);
+      const mixedCapacity = nonAcCapacity + acRegularCapacity;
+      const cleanGuests = Math.max(parseInt(guests, 10) || 0, 0);
+
+      if (!cleanGuests) {
+        return {
+          status: "warning",
+          title: "Enter number of persons",
+          lines: ["Add total members to see a suggested room split."],
+          roomsLabel: "",
+          summary: ""
+        };
+      }
+
+      if (preference === "ac") {
+        const ac = allocateAcRooms(cleanGuests);
+        const status = ac.ok && !ac.extraGuests ? "ok" : "warning";
+        return {
+          status,
+          title: ac.ok ? "Suggested AC room plan" : "AC capacity needs confirmation",
+          lines: ac.lines,
+          roomsLabel: ac.ok ? plural(ac.rooms, "AC room") : "AC capacity over limit",
+          summary: ac.ok
+            ? "Preference: AC rooms only. Guests: " + cleanGuests + ". Suggested: " + ac.lines.join("; ") + "."
+            : "Preference: AC rooms only. Guests: " + cleanGuests + ". AC max is 53 guests regularly and 55 with confirmation."
+        };
+      }
+
+      if (preference === "non-ac") {
+        if (cleanGuests <= nonAcCapacity) {
+          const rooms = Math.ceil(cleanGuests / GROUP_INVENTORY.nonAc.occupancy);
+          const lines = [plural(rooms, "Standard Non-AC room") + " for up to " + (rooms * GROUP_INVENTORY.nonAc.occupancy) + " guests"];
+          return {
+            status: "ok",
+            title: "Suggested Non-AC room plan",
+            lines,
+            roomsLabel: plural(rooms, "Standard Non-AC room"),
+            summary: "Preference: Non-AC preferred. Guests: " + cleanGuests + ". Suggested: " + lines.join("; ") + "."
+          };
+        }
+
+        if (cleanGuests <= mixedCapacity) {
+          const remaining = cleanGuests - nonAcCapacity;
+          const ac = allocateAcRooms(remaining);
+          const lines = [
+            "8 Standard Non-AC rooms for up to 24 guests",
+            ...ac.lines
+          ];
+          return {
+            status: "warning",
+            title: "Non-AC full, mixed plan suggested",
+            lines,
+            roomsLabel: "8 Non-AC rooms + " + plural(ac.rooms, "AC room"),
+            summary: "Preference: Non-AC preferred. Guests: " + cleanGuests + ". Non-AC capacity is 24, so suggested mixed plan: " + lines.join("; ") + "."
+          };
+        }
+
+        return {
+          status: "warning",
+          title: "Group size needs direct confirmation",
+          lines: ["Non-AC capacity is 24 guests. With AC rooms also, regular mixed capacity is up to 77 guests."],
+          roomsLabel: "Capacity over regular mixed limit",
+          summary: "Preference: Non-AC preferred. Guests: " + cleanGuests + ". Capacity over regular mixed limit; hotel confirmation required."
+        };
+      }
+
+      if (cleanGuests <= nonAcCapacity) {
+        const rooms = Math.ceil(cleanGuests / GROUP_INVENTORY.nonAc.occupancy);
+        const lines = [plural(rooms, "Standard Non-AC room") + " for up to " + (rooms * GROUP_INVENTORY.nonAc.occupancy) + " guests"];
+        return {
+          status: "ok",
+          title: "Best-fit room plan",
+          lines,
+          roomsLabel: plural(rooms, "Standard Non-AC room"),
+          summary: "Preference: Flexible. Guests: " + cleanGuests + ". Suggested economical plan: " + lines.join("; ") + "."
+        };
+      }
+
+      if (cleanGuests <= mixedCapacity) {
+        const remaining = cleanGuests - nonAcCapacity;
+        const ac = allocateAcRooms(remaining);
+        const lines = ["8 Standard Non-AC rooms for up to 24 guests", ...ac.lines];
+        return {
+          status: "ok",
+          title: "Best-fit mixed room plan",
+          lines,
+          roomsLabel: "8 Non-AC rooms + " + plural(ac.rooms, "AC room"),
+          summary: "Preference: Flexible. Guests: " + cleanGuests + ". Suggested mixed plan: " + lines.join("; ") + "."
+        };
+      }
+
+      return {
+        status: "warning",
+        title: "Group size needs direct confirmation",
+        lines: ["Regular group capacity is up to 77 guests when non-AC and AC rooms are used together."],
+        roomsLabel: "Capacity over regular mixed limit",
+        summary: "Preference: Flexible. Guests: " + cleanGuests + ". Capacity over regular mixed limit; hotel confirmation required."
+      };
+    }
+
+    function updateGroupPlan() {
+      const planBox = document.getElementById("group-plan");
+      if (!planBox) return null;
+
+      const guests = readValue(["group-guests"]);
+      const preference = readValue(["group-preference"]) || "non-ac";
+      const plan = buildGroupPlan(guests, preference);
+      planBox.className = "group-plan" + (plan.status === "warning" ? " warning" : "");
+      planBox.innerHTML = [
+        "<strong>" + plan.title + "</strong>",
+        "<ul>" + plan.lines.map((line) => "<li>" + line + "</li>").join("") + "</ul>",
+        "<span>Final availability and exact room numbers will be confirmed by Luxmi Hotel.</span>"
+      ].join("");
+      return plan;
     }
 
     async function submitToGoogleSheet(payload) {
@@ -1401,6 +1613,8 @@
 
       const form = event.target;
       const button = form.querySelector("button[type='submit']");
+      const groupPlan = updateGroupPlan() || buildGroupPlan(scopedValue(form, "group-guests"), scopedValue(form, "group-preference"));
+      const guestMessage = scopedValue(form, "group-message");
       const payload = {
         action: "group",
         source: "Website group enquiry form",
@@ -1410,9 +1624,10 @@
         arrival: scopedValue(form, "group-arrival"),
         departure: scopedValue(form, "group-departure"),
         guests: scopedValue(form, "group-guests"),
-        rooms: scopedValue(form, "group-rooms"),
+        rooms: groupPlan.roomsLabel,
         purpose: scopedValue(form, "group-purpose"),
-        message: scopedValue(form, "group-message")
+        preference: scopedValue(form, "group-preference"),
+        message: [groupPlan.summary, guestMessage ? "Guest message: " + guestMessage : ""].filter(Boolean).join("\n")
       };
 
       try {
@@ -1432,7 +1647,8 @@
           "Phone: " + payload.phone,
           payload.email ? "Email: " + payload.email : "",
           "Persons: " + payload.guests,
-          "Rooms needed: " + payload.rooms,
+          "Room preference: " + payload.preference,
+          "Suggested rooms: " + payload.rooms,
           "Arrival: " + (payload.arrival || "Not decided"),
           "Departure: " + (payload.departure || "Not decided"),
           payload.purpose ? "Purpose: " + payload.purpose : "",
@@ -1448,6 +1664,13 @@
     }
 
     setMinimumDates();
+    updateGroupPlan();
+
+    ["group-guests", "group-preference"].forEach((id) => {
+      const input = document.getElementById(id);
+      if (input) input.addEventListener("input", updateGroupPlan);
+      if (input) input.addEventListener("change", updateGroupPlan);
+    });
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") closePhotoViewer();
