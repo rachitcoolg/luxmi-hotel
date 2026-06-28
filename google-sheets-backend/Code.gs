@@ -65,6 +65,23 @@ function rotateAdminKey() {
   return "Admin key rotated: " + adminKey;
 }
 
+function showApplicationKey() {
+  const ss = getSpreadsheet_();
+  const props = PropertiesService.getScriptProperties();
+  let adminKey = props.getProperty("ADMIN_KEY");
+  if (!adminKey) {
+    adminKey = Utilities.getUuid().replace(/-/g, "").slice(0, 18);
+    props.setProperty("ADMIN_KEY", adminKey);
+  }
+  if (!props.getProperty("HOTEL_EMAILS")) props.setProperty("HOTEL_EMAILS", HOTEL_EMAILS_DEFAULT);
+  writeSettings_(ss, adminKey);
+  SpreadsheetApp.flush();
+  Logger.log("Application Key: " + adminKey);
+  Logger.log("Admin URL: " + ScriptApp.getService().getUrl() + "?adminKey=" + adminKey);
+  Logger.log("Spreadsheet URL: " + ss.getUrl());
+  return "Application key added to Settings sheet.";
+}
+
 function createInventoryCalendar() {
   const ss = getSpreadsheet_();
   setupIfNeeded_(ss);
@@ -568,11 +585,14 @@ function writeSettings_(ss, adminKey) {
   const sheet = ss.getSheetByName(SHEETS.settings);
   sheet.clearContents();
   sheet.appendRow(["Key", "Value"]);
+  sheet.appendRow(["Application Key", adminKey]);
   sheet.appendRow(["Admin Key", adminKey]);
+  sheet.appendRow(["Admin URL", ScriptApp.getService().getUrl() + "?adminKey=" + adminKey]);
   sheet.appendRow(["Spreadsheet URL", ss.getUrl()]);
   sheet.appendRow(["Hotel Emails", getHotelEmails_().join(",")]);
   sheet.appendRow(["Deploy Web App", "Deploy as Web app: Execute as Me, Access: Anyone"]);
   sheet.getRange(1, 1, 1, 2).setFontWeight("bold");
+  sheet.autoResizeColumns(1, 2);
 }
 
 function readObjects_(sheet) {
