@@ -36,7 +36,7 @@ function setup() {
   ensureSheet_(ss, SHEETS.rooms, ["Room Type", "Base Price", "Max Persons", "Total Rooms", "Active", "Notes"]);
   ensureSheet_(ss, SHEETS.inventory, ["Date", "Room Type", "Available Rooms", "Price Override", "Notes", "Updated At"]);
   ensureSheet_(ss, SHEETS.calendar, ["Date"]);
-  ensureSheet_(ss, SHEETS.bookings, ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Message", "Source"]);
+  ensureSheet_(ss, SHEETS.bookings, ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Rooms Required", "Total", "20% Advance", "Balance at Hotel", "Payment Terms", "Policies", "Message", "Source"]);
   ensureSheet_(ss, SHEETS.groups, ["Timestamp", "Enquiry ID", "Status", "Name", "Phone", "Email", "Arrival", "Departure", "Persons", "Rooms", "Purpose", "Message", "Source"]);
 
   seedRooms_(ss.getSheetByName(SHEETS.rooms));
@@ -117,6 +117,12 @@ function handleBooking_(data) {
     clean_(data.checkout),
     clean_(data.guests),
     clean_(data.room),
+    clean_(data.rooms),
+    clean_(data.total),
+    clean_(data.advance),
+    clean_(data.balance),
+    clean_(data.paymentTerms),
+    clean_(data.policies),
     clean_(data.message),
     clean_(data.source || "Website"),
   ];
@@ -163,6 +169,11 @@ function sendBookingEmails_(id, data) {
     "Persons: " + clean_(data.guests),
     "Check-in: " + clean_(data.checkin),
     "Check-out: " + clean_(data.checkout),
+    "Total: " + clean_(data.total),
+    "20% advance payable online: " + clean_(data.advance),
+    "Balance payable at hotel: " + clean_(data.balance),
+    "Payment terms: " + clean_(data.paymentTerms),
+    "Policies: " + clean_(data.policies),
     "Message: " + clean_(data.message),
     "",
     "Please confirm availability from the admin sheet.",
@@ -181,6 +192,10 @@ function sendBookingEmails_(id, data) {
       "Persons: " + clean_(data.guests),
       "Check-in: " + clean_(data.checkin),
       "Check-out: " + clean_(data.checkout),
+      "Estimated total: " + clean_(data.total),
+      "20% advance payable online: " + clean_(data.advance),
+      "Balance payable at hotel: " + clean_(data.balance),
+      "Policies: " + clean_(data.policies),
       "",
       "Our team will confirm availability shortly.",
       "",
@@ -339,7 +354,7 @@ function setupIfNeeded_(ss) {
   ensureSheet_(ss, SHEETS.rooms, ["Room Type", "Base Price", "Max Persons", "Total Rooms", "Active", "Notes"]);
   ensureSheet_(ss, SHEETS.inventory, ["Date", "Room Type", "Available Rooms", "Price Override", "Notes", "Updated At"]);
   ensureSheet_(ss, SHEETS.calendar, ["Date"]);
-  ensureSheet_(ss, SHEETS.bookings, ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Message", "Source"]);
+  ensureSheet_(ss, SHEETS.bookings, ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Rooms Required", "Total", "20% Advance", "Balance at Hotel", "Payment Terms", "Policies", "Message", "Source"]);
   ensureSheet_(ss, SHEETS.groups, ["Timestamp", "Enquiry ID", "Status", "Name", "Phone", "Email", "Arrival", "Departure", "Persons", "Rooms", "Purpose", "Message", "Source"]);
   seedRooms_(ss.getSheetByName(SHEETS.rooms));
 }
@@ -348,8 +363,16 @@ function ensureSheet_(ss, name, headers) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) sheet = ss.insertSheet(name);
   if (sheet.getLastRow() === 0) sheet.appendRow(headers);
+  ensureHeaders_(sheet, headers);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
   return sheet;
+}
+
+function ensureHeaders_(sheet, headers) {
+  const current = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getDisplayValues()[0];
+  const missing = headers.filter((header) => current.indexOf(header) === -1);
+  if (!missing.length) return;
+  sheet.getRange(1, current.length + 1, 1, missing.length).setValues([missing]);
 }
 
 function seedRooms_(sheet) {
