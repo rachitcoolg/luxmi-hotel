@@ -12,6 +12,7 @@ const HOTEL_EMAILS_DEFAULT = "luxmihotelbooking@gmail.com,luxmihotel2017@gmail.c
 const HOTEL_NAME = "Luxmi Hotel";
 const HOTEL_PHONE = "+91 70074 17970";
 const SPREADSHEET_NAME = "Luxmi Hotel Booking Admin";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwN09jObid5UTMDhlht_LwD-FJK7Ib5KE6duqQRY3nZ6KtYBpyp28H5oxgOmoea6MBVbg/exec";
 
 function getSpreadsheet_() {
   const props = PropertiesService.getScriptProperties();
@@ -77,7 +78,7 @@ function showApplicationKey() {
   writeSettings_(ss, adminKey);
   SpreadsheetApp.flush();
   Logger.log("Application Key: " + adminKey);
-  Logger.log("Admin URL: " + ScriptApp.getService().getUrl() + "?adminKey=" + adminKey);
+  Logger.log("Admin URL: " + adminUrl_(adminKey));
   Logger.log("Spreadsheet URL: " + ss.getUrl());
   return "Application key added to Settings sheet.";
 }
@@ -587,12 +588,18 @@ function writeSettings_(ss, adminKey) {
   sheet.appendRow(["Key", "Value"]);
   sheet.appendRow(["Application Key", adminKey]);
   sheet.appendRow(["Admin Key", adminKey]);
-  sheet.appendRow(["Admin URL", ScriptApp.getService().getUrl() + "?adminKey=" + adminKey]);
+  sheet.appendRow(["Admin URL", adminUrl_(adminKey)]);
   sheet.appendRow(["Spreadsheet URL", ss.getUrl()]);
   sheet.appendRow(["Hotel Emails", getHotelEmails_().join(",")]);
   sheet.appendRow(["Deploy Web App", "Deploy as Web app: Execute as Me, Access: Anyone"]);
   sheet.getRange(1, 1, 1, 2).setFontWeight("bold");
   sheet.autoResizeColumns(1, 2);
+}
+
+function adminUrl_(adminKey) {
+  const serviceUrl = ScriptApp.getService().getUrl();
+  const baseUrl = serviceUrl || WEB_APP_URL;
+  return baseUrl + "?adminKey=" + adminKey;
 }
 
 function readObjects_(sheet) {
