@@ -125,6 +125,10 @@ function doPost(e) {
     updateInventory_(data);
     return adminPage_(data.adminKey, "Inventory updated.");
   }
+  if (action === "update-calendar-date") {
+    updateCalendarDate_(data);
+    return adminPage_(data.adminKey, "Calendar updated for " + clean_(data.date) + ".");
+  }
   if (action === "update-booking") {
     updateBookingStatus_(data);
     return adminPage_(data.adminKey, "Booking status updated.");
@@ -274,9 +278,10 @@ function adminPage_(adminKey, message) {
   const bookings = readObjects_(ss.getSheetByName(SHEETS.bookings)).reverse().slice(0, 80);
   const groups = readObjects_(ss.getSheetByName(SHEETS.groups)).reverse().slice(0, 60);
   const inventory = readObjects_(ss.getSheetByName(SHEETS.inventory)).reverse().slice(0, 80);
+  const calendarRows = getCalendarAdminRows_(ss, 30);
   const calendar = ss.getSheetByName(SHEETS.calendar);
   const todaySheet = ss.getSheetByName(SHEETS.today);
-  const url = ScriptApp.getService().getUrl();
+  const url = ScriptApp.getService().getUrl() || WEB_APP_URL;
   const sheetUrl = ss.getUrl();
   const calendarUrl = sheetUrl + "#gid=" + (calendar ? calendar.getSheetId() : "");
   const todayUrl = sheetUrl + "#gid=" + (todaySheet ? todaySheet.getSheetId() : "");
@@ -285,16 +290,24 @@ function adminPage_(adminKey, message) {
     <!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Luxmi Hotel Admin</title>
     <style>
-      body{font-family:Arial,sans-serif;margin:0;background:#fffaf4;color:#171210}main{max-width:1180px;margin:auto;padding:22px}h1,h2{color:#7a1720}section{margin:22px 0;padding:18px;background:#fff;border:1px solid #e7ded7;border-radius:8px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid #eee;padding:8px;text-align:left;vertical-align:top}input,select,textarea{width:100%;padding:8px;margin:4px 0 10px;border:1px solid #ddd;border-radius:5px}button{padding:9px 14px;border:0;border-radius:5px;background:#7a1720;color:white;font-weight:700}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.msg{padding:10px;background:#e9f8ef;color:#126437;border-radius:6px}.small{font-size:12px;color:#6f625b}.scroll{overflow:auto}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+      body{font-family:Arial,sans-serif;margin:0;background:#fffaf4;color:#171210}main{max-width:1180px;margin:auto;padding:22px}h1,h2{color:#7a1720}section{margin:22px 0;padding:18px;background:#fff;border:1px solid #e7ded7;border-radius:8px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid #eee;padding:8px;text-align:left;vertical-align:top}input,select,textarea{width:100%;padding:8px;margin:4px 0 10px;border:1px solid #ddd;border-radius:5px;box-sizing:border-box}button{padding:9px 14px;border:0;border-radius:5px;background:#7a1720;color:white;font-weight:700;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.msg{padding:10px;background:#e9f8ef;color:#126437;border-radius:6px}.small{font-size:12px;color:#6f625b}.scroll{overflow:auto}.admin-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.admin-tabs a{padding:10px 12px;background:#f5efe5;border:1px solid #dec798;border-radius:6px;color:#7a1720;text-decoration:none;font-weight:700}.calendar-card{border:1px solid #eadfce;border-radius:8px;padding:14px;margin:12px 0;background:#fffdf9}.calendar-card h3{margin:0 0 12px;color:#7a1720}.room-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.room-box{background:#fff7ea;border:1px solid #eadfce;border-radius:8px;padding:10px}.room-box strong{display:block;color:#7a1720;margin-bottom:8px}.stat{font-size:12px;color:#6f625b;margin:4px 0}.actions{margin-top:10px}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e9f8ef;color:#126437;font-weight:700;font-size:12px}@media(max-width:900px){.grid,.room-grid{grid-template-columns:1fr}}
     </style></head><body><main>
       <h1>Luxmi Hotel Admin</h1>
       <p class="small">Web app URL: ${escapeHtml_(url)} | Admin key: ${escapeHtml_(adminKey)}</p>
-      <p><a href="${escapeHtml_(sheetUrl)}" target="_blank" rel="noopener">Open Google Sheet records</a></p>
-      <p><a href="${escapeHtml_(todayUrl)}" target="_blank" rel="noopener">Open Today Check-in / Check-out</a></p>
-      <p><a href="${escapeHtml_(calendarUrl)}" target="_blank" rel="noopener">Open Inventory Calendar</a></p>
+      <div class="admin-tabs">
+        <a href="#rates">Rates</a>
+        <a href="#calendar">Inventory Calendar</a>
+        <a href="#today">Today Check-in / Check-out</a>
+        <a href="#bookings">Bookings</a>
+        <a href="${escapeHtml_(sheetUrl)}" target="_blank" rel="noopener">Open Sheet</a>
+      </div>
       ${message ? `<p class="msg">${escapeHtml_(message)}</p>` : ""}
-      <section><h2>Rooms, Prices and Total Inventory</h2><div class="grid">${rooms.map(roomForm_(adminKey, url)).join("")}</div></section>
-      <section><h2>Today Check-in / Check-out</h2>
+      <section id="rates"><h2>Rooms, Prices and Total Inventory</h2><div class="grid">${rooms.map(roomForm_(adminKey, url)).join("")}</div></section>
+      <section id="calendar"><h2>Rates and Inventory Calendar</h2>
+        <p class="small">Manage the next 30 days here. Enter blocked/sold rooms and rate for each room type, then save that date. Remaining rooms calculate from total rooms minus blocked/sold.</p>
+        ${calendarAdmin_(calendarRows, adminKey, url)}
+      </section>
+      <section id="today"><h2>Today Check-in / Check-out</h2>
         <p class="small">Open this tab every morning to see today's arrivals and departures with guest contact, room, amount and payment details.</p>
         <p><a href="${escapeHtml_(todayUrl)}" target="_blank" rel="noopener">Open today sheet</a></p>
       </section>
@@ -310,7 +323,7 @@ function adminPage_(adminKey, message) {
         </form>
         <div class="scroll">${table_(inventory)}</div>
       </section>
-      <section><h2>Recent Bookings</h2><div class="scroll">${bookingsTable_(bookings, adminKey, url)}</div></section>
+      <section id="bookings"><h2>Recent Bookings</h2><div class="scroll">${bookingsTable_(bookings, adminKey, url)}</div></section>
       <section><h2>Group Enquiries</h2><div class="scroll">${table_(groups)}</div></section>
     </main></body></html>
   `).setTitle("Luxmi Hotel Admin");
@@ -373,6 +386,128 @@ function updateInventory_(data) {
     clean_(data.notes),
     new Date(),
   ]);
+}
+
+function calendarAdmin_(rows, adminKey, url) {
+  if (!rows.length) return "<p>No calendar rows found. Run createInventoryCalendar once from Apps Script.</p>";
+  return rows.map((row) => {
+    return `<form class="calendar-card" method="post" action="${escapeHtml_(url)}">
+      <input type="hidden" name="action" value="update-calendar-date">
+      <input type="hidden" name="adminKey" value="${escapeHtml_(adminKey)}">
+      <input type="hidden" name="date" value="${escapeHtml_(row.dateValue)}">
+      <h3>${escapeHtml_(row.label)} <span class="pill">${escapeHtml_(row.day)}</span></h3>
+      <div class="room-grid">
+        <div class="room-box">
+          <strong>Standard Non AC</strong>
+          <p class="stat">Total: ${escapeHtml_(row.standardTotal)} | Remaining: ${escapeHtml_(row.standardRemaining)}</p>
+          <label>Blocked / Sold<input type="number" min="0" name="standardBlocked" value="${escapeHtml_(row.standardBlocked)}"></label>
+          <label>Rate<input type="number" min="0" name="standardRate" value="${escapeHtml_(row.standardRate)}"></label>
+        </div>
+        <div class="room-box">
+          <strong>Deluxe Double AC</strong>
+          <p class="stat">Total: ${escapeHtml_(row.deluxeTotal)} | Remaining: ${escapeHtml_(row.deluxeRemaining)}</p>
+          <label>Blocked / Sold<input type="number" min="0" name="deluxeBlocked" value="${escapeHtml_(row.deluxeBlocked)}"></label>
+          <label>Rate<input type="number" min="0" name="deluxeRate" value="${escapeHtml_(row.deluxeRate)}"></label>
+        </div>
+        <div class="room-box">
+          <strong>Four Bed AC</strong>
+          <p class="stat">Total: ${escapeHtml_(row.fourTotal)} | Remaining: ${escapeHtml_(row.fourRemaining)}</p>
+          <label>Blocked / Sold<input type="number" min="0" name="fourBlocked" value="${escapeHtml_(row.fourBlocked)}"></label>
+          <label>Rate<input type="number" min="0" name="fourRate" value="${escapeHtml_(row.fourRate)}"></label>
+        </div>
+      </div>
+      <label>Notes<input name="notes" value="${escapeHtml_(row.notes)}" placeholder="Optional note for this date"></label>
+      <div class="actions"><button type="submit">Save This Date</button></div>
+    </form>`;
+  }).join("");
+}
+
+function getCalendarAdminRows_(ss, days) {
+  let sheet = ss.getSheetByName(SHEETS.calendar);
+  if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 15) {
+    buildInventoryCalendar_(ss, Math.max(days, 180));
+    sheet = ss.getSheetByName(SHEETS.calendar);
+  }
+
+  const lastRow = Math.min(sheet.getLastRow(), days + 1);
+  if (lastRow < 2) return [];
+  const values = sheet.getRange(2, 1, lastRow - 1, 15).getValues();
+  const display = sheet.getRange(2, 1, lastRow - 1, 15).getDisplayValues();
+  const tz = Session.getScriptTimeZone();
+
+  return values.map((row, index) => {
+    const shown = display[index];
+    const date = row[0] instanceof Date ? row[0] : new Date(shown[0]);
+    const dateValue = Utilities.formatDate(date, tz, "yyyy-MM-dd");
+    const label = Utilities.formatDate(date, tz, "dd MMM yyyy");
+    return {
+      dateValue: dateValue,
+      label: label,
+      day: shown[1],
+      standardTotal: shown[2],
+      standardBlocked: shown[3],
+      standardRemaining: shown[4],
+      standardRate: Number(row[5] || shown[5] || 0),
+      deluxeTotal: shown[6],
+      deluxeBlocked: shown[7],
+      deluxeRemaining: shown[8],
+      deluxeRate: Number(row[9] || shown[9] || 0),
+      fourTotal: shown[10],
+      fourBlocked: shown[11],
+      fourRemaining: shown[12],
+      fourRate: Number(row[13] || shown[13] || 0),
+      notes: shown[14],
+    };
+  });
+}
+
+function updateCalendarDate_(data) {
+  const ss = getSpreadsheet_();
+  setupIfNeeded_(ss);
+  let sheet = ss.getSheetByName(SHEETS.calendar);
+  if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 15) {
+    buildInventoryCalendar_(ss, 180);
+    sheet = ss.getSheetByName(SHEETS.calendar);
+  }
+
+  const rooms = getRoomDefinitions_(ss);
+  const target = clean_(data.date);
+  const dateValues = sheet.getRange(2, 1, Math.max(sheet.getLastRow() - 1, 1), 1).getValues();
+  const tz = Session.getScriptTimeZone();
+  let rowNumber = 0;
+
+  for (let i = 0; i < dateValues.length; i += 1) {
+    const value = dateValues[i][0];
+    if (!value) continue;
+    const current = value instanceof Date ? Utilities.formatDate(value, tz, "yyyy-MM-dd") : clean_(value);
+    if (current === target) {
+      rowNumber = i + 2;
+      break;
+    }
+  }
+
+  if (!rowNumber) {
+    rowNumber = sheet.getLastRow() + 1;
+    sheet.getRange(rowNumber, 1).setValue(target);
+    sheet.getRange(rowNumber, 2).setFormula('=TEXT(A' + rowNumber + ',"ddd")');
+  }
+
+  sheet.getRange(rowNumber, 3, 1, 13).setValues([[
+    rooms[0].totalRooms,
+    Number(data.standardBlocked || 0),
+    "=MAX(0,C" + rowNumber + "-D" + rowNumber + ")",
+    Number(data.standardRate || rooms[0].basePrice),
+    rooms[1].totalRooms,
+    Number(data.deluxeBlocked || 0),
+    "=MAX(0,G" + rowNumber + "-H" + rowNumber + ")",
+    Number(data.deluxeRate || rooms[1].basePrice),
+    rooms[2].totalRooms,
+    Number(data.fourBlocked || 0),
+    "=MAX(0,K" + rowNumber + "-L" + rowNumber + ")",
+    Number(data.fourRate || rooms[2].basePrice),
+    clean_(data.notes),
+  ]]);
+  sheet.getRange(rowNumber, 1).setNumberFormat("yyyy-mm-dd");
 }
 
 function updateBookingStatus_(data) {
