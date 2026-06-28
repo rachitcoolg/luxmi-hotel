@@ -32,6 +32,7 @@ The admin key is written in the `Settings` tab after running `setup()`.
 - `Rooms`
 - `Inventory`
 - `Inventory Calendar`
+- `Today Check-in Checkout`
 - `Bookings`
 - `Group Enquiries`
 
@@ -55,3 +56,18 @@ Edit only the yellow cells:
 - `Rate`: date-wise room rate
 
 Green `Remaining` cells calculate automatically.
+
+## Today Check-in / Check-out
+
+Run this Apps Script function once after updating the script:
+
+```text
+createTodayDashboard()
+```
+
+It creates a `Today Check-in Checkout` tab with:
+
+- Today's check-ins with guest name, phone, email, room, amount and payment details
+- Today's check-outs with the same details
+
+The tab uses `TODAY()` formulas, so it updates automatically every day.
