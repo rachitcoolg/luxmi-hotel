@@ -3,6 +3,7 @@ const SHEETS = {
   rooms: "Rooms",
   inventory: "Inventory",
   calendar: "Inventory Calendar",
+  today: "Today Check-in Checkout",
   bookings: "Bookings",
   groups: "Group Enquiries",
 };
@@ -36,11 +37,13 @@ function setup() {
   ensureSheet_(ss, SHEETS.rooms, ["Room Type", "Base Price", "Max Persons", "Total Rooms", "Active", "Notes"]);
   ensureSheet_(ss, SHEETS.inventory, ["Date", "Room Type", "Available Rooms", "Price Override", "Notes", "Updated At"]);
   ensureSheet_(ss, SHEETS.calendar, ["Date"]);
+  ensureSheet_(ss, SHEETS.today, ["Today Check-in Checkout"]);
   ensureSheet_(ss, SHEETS.bookings, ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Rooms Required", "Total", "20% Advance", "Balance at Hotel", "Payment Terms", "Policies", "Message", "Source"]);
   ensureSheet_(ss, SHEETS.groups, ["Timestamp", "Enquiry ID", "Status", "Name", "Phone", "Email", "Arrival", "Departure", "Persons", "Rooms", "Purpose", "Message", "Source"]);
 
   seedRooms_(ss.getSheetByName(SHEETS.rooms));
   buildInventoryCalendar_(ss, 180);
+  buildTodayDashboard_(ss);
   writeSettings_(ss, adminKey);
   SpreadsheetApp.flush();
   Logger.log("Admin URL: " + ScriptApp.getService().getUrl() + "?adminKey=" + adminKey);
@@ -70,6 +73,15 @@ function createInventoryCalendar() {
   SpreadsheetApp.flush();
   Logger.log("Inventory calendar ready: " + ss.getUrl());
   return "Inventory calendar created for 180 days.";
+}
+
+function createTodayDashboard() {
+  const ss = getSpreadsheet_();
+  setupIfNeeded_(ss);
+  buildTodayDashboard_(ss);
+  SpreadsheetApp.flush();
+  Logger.log("Today check-in / check-out sheet ready: " + ss.getUrl());
+  return "Today check-in / check-out sheet created.";
 }
 
 function doGet(e) {
@@ -245,9 +257,11 @@ function adminPage_(adminKey, message) {
   const groups = readObjects_(ss.getSheetByName(SHEETS.groups)).reverse().slice(0, 60);
   const inventory = readObjects_(ss.getSheetByName(SHEETS.inventory)).reverse().slice(0, 80);
   const calendar = ss.getSheetByName(SHEETS.calendar);
+  const todaySheet = ss.getSheetByName(SHEETS.today);
   const url = ScriptApp.getService().getUrl();
   const sheetUrl = ss.getUrl();
   const calendarUrl = sheetUrl + "#gid=" + (calendar ? calendar.getSheetId() : "");
+  const todayUrl = sheetUrl + "#gid=" + (todaySheet ? todaySheet.getSheetId() : "");
 
   return HtmlService.createHtmlOutput(`
     <!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -258,9 +272,14 @@ function adminPage_(adminKey, message) {
       <h1>Luxmi Hotel Admin</h1>
       <p class="small">Web app URL: ${escapeHtml_(url)} | Admin key: ${escapeHtml_(adminKey)}</p>
       <p><a href="${escapeHtml_(sheetUrl)}" target="_blank" rel="noopener">Open Google Sheet records</a></p>
+      <p><a href="${escapeHtml_(todayUrl)}" target="_blank" rel="noopener">Open Today Check-in / Check-out</a></p>
       <p><a href="${escapeHtml_(calendarUrl)}" target="_blank" rel="noopener">Open Inventory Calendar</a></p>
       ${message ? `<p class="msg">${escapeHtml_(message)}</p>` : ""}
       <section><h2>Rooms, Prices and Total Inventory</h2><div class="grid">${rooms.map(roomForm_(adminKey, url)).join("")}</div></section>
+      <section><h2>Today Check-in / Check-out</h2>
+        <p class="small">Open this tab every morning to see today's arrivals and departures with guest contact, room, amount and payment details.</p>
+        <p><a href="${escapeHtml_(todayUrl)}" target="_blank" rel="noopener">Open today sheet</a></p>
+      </section>
       <section><h2>Inventory Calendar</h2>
         <p class="small">Use the Google Sheet calendar to manage daily inventory. Edit the yellow Blocked/Sold and Rate cells. Remaining rooms calculate automatically.</p>
         <p><a href="${escapeHtml_(calendarUrl)}" target="_blank" rel="noopener">Open date-wise inventory calendar</a></p>
@@ -354,18 +373,38 @@ function setupIfNeeded_(ss) {
   ensureSheet_(ss, SHEETS.rooms, ["Room Type", "Base Price", "Max Persons", "Total Rooms", "Active", "Notes"]);
   ensureSheet_(ss, SHEETS.inventory, ["Date", "Room Type", "Available Rooms", "Price Override", "Notes", "Updated At"]);
   ensureSheet_(ss, SHEETS.calendar, ["Date"]);
+  ensureSheet_(ss, SHEETS.today, ["Today Check-in Checkout"]);
   ensureSheet_(ss, SHEETS.bookings, ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Rooms Required", "Total", "20% Advance", "Balance at Hotel", "Payment Terms", "Policies", "Message", "Source"]);
   ensureSheet_(ss, SHEETS.groups, ["Timestamp", "Enquiry ID", "Status", "Name", "Phone", "Email", "Arrival", "Departure", "Persons", "Rooms", "Purpose", "Message", "Source"]);
   seedRooms_(ss.getSheetByName(SHEETS.rooms));
+  buildTodayDashboard_(ss);
 }
 
 function ensureSheet_(ss, name, headers) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) sheet = ss.insertSheet(name);
   if (sheet.getLastRow() === 0) sheet.appendRow(headers);
+  if (name === SHEETS.bookings) normalizeSheetHeaders_(sheet, headers);
   ensureHeaders_(sheet, headers);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
   return sheet;
+}
+
+function normalizeSheetHeaders_(sheet, headers) {
+  const lastColumn = Math.max(sheet.getLastColumn(), headers.length);
+  const current = sheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0].map(String);
+  if (current.slice(0, headers.length).join("|") === headers.join("|")) return;
+
+  const rowCount = Math.max(sheet.getLastRow() - 1, 0);
+  const data = rowCount ? sheet.getRange(2, 1, rowCount, lastColumn).getValues() : [];
+  const normalized = data.map((row) => headers.map((header) => {
+    const index = current.indexOf(header);
+    return index >= 0 ? row[index] : "";
+  }));
+
+  sheet.clearContents();
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  if (normalized.length) sheet.getRange(2, 1, normalized.length, headers.length).setValues(normalized);
 }
 
 function ensureHeaders_(sheet, headers) {
@@ -461,6 +500,49 @@ function buildInventoryCalendar_(ss, days) {
   sheet.getRange(2, 13, rows.length, 1).setBackground("#e2f0d9");
   sheet.autoResizeColumns(1, headers.length);
   sheet.getRange("A1:O1").createFilter();
+}
+
+function buildTodayDashboard_(ss) {
+  const sheet = ss.getSheetByName(SHEETS.today) || ss.insertSheet(SHEETS.today);
+  sheet.clear();
+
+  const headers = [
+    "Booking ID",
+    "Status",
+    "Name",
+    "Phone",
+    "Email",
+    "Check-in",
+    "Check-out",
+    "Persons",
+    "Room Type",
+    "Rooms Required",
+    "Total",
+    "20% Advance",
+    "Balance at Hotel",
+  ];
+  const dataColumns = "{Bookings!B2:B,Bookings!C2:C,Bookings!D2:D,Bookings!E2:E,Bookings!F2:F,Bookings!G2:G,Bookings!H2:H,Bookings!I2:I,Bookings!J2:J,Bookings!K2:K,Bookings!L2:L,Bookings!M2:M,Bookings!N2:N}";
+  const checkinFormula = '=IFERROR(FILTER(' + dataColumns + ',Bookings!G2:G=TEXT(TODAY(),"yyyy-mm-dd"),Bookings!C2:C<>"Cancelled"),"No check-ins today")';
+  const checkoutFormula = '=IFERROR(FILTER(' + dataColumns + ',Bookings!H2:H=TEXT(TODAY(),"yyyy-mm-dd"),Bookings!C2:C<>"Cancelled"),"No check-outs today")';
+
+  sheet.getRange("A1").setValue("Luxmi Hotel - Today Check-in / Check-out");
+  sheet.getRange("A2").setFormula('="Date: "&TEXT(TODAY(),"dd mmm yyyy")');
+  sheet.getRange("A4").setValue("Today Check-ins");
+  sheet.getRange(5, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange("A6").setFormula(checkinFormula);
+  sheet.getRange("A24").setValue("Today Check-outs");
+  sheet.getRange(25, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange("A26").setFormula(checkoutFormula);
+
+  sheet.setFrozenRows(5);
+  sheet.getRange("A1:M1").merge().setFontWeight("bold").setFontSize(16).setBackground("#7a1720").setFontColor("#ffffff");
+  sheet.getRange("A2:M2").merge().setFontWeight("bold").setBackground("#fff2cc");
+  sheet.getRange("A4:M4").merge().setFontWeight("bold").setBackground("#dec798").setFontColor("#7a1720");
+  sheet.getRange("A24:M24").merge().setFontWeight("bold").setBackground("#dec798").setFontColor("#7a1720");
+  sheet.getRange("A5:M5").setFontWeight("bold").setBackground("#f5efe5");
+  sheet.getRange("A25:M25").setFontWeight("bold").setBackground("#f5efe5");
+  sheet.getRange("A:M").setWrap(true);
+  sheet.autoResizeColumns(1, headers.length);
 }
 
 function getRoomDefinitions_(ss) {
