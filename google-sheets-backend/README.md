@@ -31,5 +31,27 @@ The admin key is written in the `Settings` tab after running `setup()`.
 - `Settings`
 - `Rooms`
 - `Inventory`
+- `Inventory Calendar`
 - `Bookings`
 - `Group Enquiries`
+
+## Inventory Calendar
+
+Run this Apps Script function whenever you want to create or refresh the date-wise inventory calendar:
+
+```text
+createInventoryCalendar()
+```
+
+It creates 180 days of inventory rows with:
+
+- Standard Non AC total, blocked/sold, remaining and rate
+- Deluxe Double AC total, blocked/sold, remaining and rate
+- Four Bed AC total, blocked/sold, remaining and rate
+
+Edit only the yellow cells:
+
+- `Blocked/Sold`: rooms already blocked or sold for that date
+- `Rate`: date-wise room rate
+
+Green `Remaining` cells calculate automatically.
