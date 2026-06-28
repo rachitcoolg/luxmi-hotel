@@ -557,6 +557,50 @@
       background: #fae8ea;
     }
 
+    .booking-summary {
+      display: none;
+      grid-column: 1 / -1;
+      gap: 10px;
+      padding: 18px;
+      border: 1px solid #dec798;
+      border-radius: var(--radius);
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    .booking-summary.show { display: grid; }
+
+    .booking-summary strong {
+      color: var(--wine);
+      font-size: 17px;
+    }
+
+    .booking-summary ul {
+      display: grid;
+      gap: 6px;
+      padding-left: 18px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .booking-summary .total {
+      display: inline-block;
+      color: var(--wine);
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .booking-summary span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .booking-summary.warning {
+      border-color: rgba(122,23,32,0.28);
+      background: #fae8ea;
+    }
+
     .form-status {
       display: none;
       grid-column: 1 / -1;
@@ -903,17 +947,22 @@
         <input id="qb-date" type="date" required>
       </div>
       <div class="field">
+        <label for="qb-checkout">Check-out</label>
+        <input id="qb-checkout" type="date" required>
+      </div>
+      <div class="field">
         <label for="qb-guests">Persons</label>
         <input id="qb-guests" type="number" min="1" value="2" required>
       </div>
       <div class="field">
         <label for="qb-room">Room</label>
         <select id="qb-room">
-          <option>Standard Double Room NON AC - Air Cooler - Rs.800</option>
-          <option>Deluxe Double Room AC - Rs.1200</option>
-          <option>Deluxe Four Bed AC - Rs.1800</option>
+          <option value="standard">Standard Double Room NON AC - Air Cooler - Rs.800</option>
+          <option value="deluxeDouble">Deluxe Double Room AC - Rs.1200</option>
+          <option value="deluxeFour">Deluxe Four Bed AC - Rs.1800</option>
         </select>
       </div>
+      <div class="booking-summary" id="booking-summary" aria-live="polite"></div>
       <button class="btn btn-primary" type="submit">Check Availability</button>
       <p class="form-status" id="booking-status" role="status"></p>
     </form>
@@ -1195,9 +1244,9 @@
           <div class="field full">
             <label for="room">Room Type</label>
             <select id="room">
-              <option>Standard Double Room NON AC - Air Cooler - Rs.800</option>
-              <option>Deluxe Double Room AC - Rs.1200</option>
-              <option>Deluxe Four Bed AC - Rs.1800</option>
+              <option value="standard">Standard Double Room NON AC - Air Cooler - Rs.800</option>
+              <option value="deluxeDouble">Deluxe Double Room AC - Rs.1200</option>
+              <option value="deluxeFour">Deluxe Four Bed AC - Rs.1800</option>
             </select>
           </div>
           <div class="field full">
@@ -1277,6 +1326,30 @@
       acTriple: { label: "AC triple occupancy rooms", rooms: 11, occupancy: 3 },
       acExtraMax: 2
     };
+    const ROOM_TYPES = {
+      standard: {
+        label: "Standard Double Room NON AC",
+        price: 800,
+        baseOccupancy: 2,
+        maxOccupancy: 3,
+        inventory: 8
+      },
+      deluxeDouble: {
+        label: "Deluxe Double Room AC",
+        price: 1200,
+        baseOccupancy: 2,
+        maxOccupancy: 3,
+        inventory: 11
+      },
+      deluxeFour: {
+        label: "Deluxe Four Bed AC",
+        price: 1800,
+        baseOccupancy: 4,
+        maxOccupancy: 5,
+        inventory: 5
+      }
+    };
+    const EXTRA_GUEST_CHARGE = 300;
     const roomGalleries = {
       standard: {
         title: "Standard Double Room NON AC",
@@ -1319,7 +1392,7 @@
 
     function setMinimumDates() {
       const today = new Date().toISOString().split("T")[0];
-      ["qb-date", "checkin", "checkout", "group-arrival", "group-departure"].forEach((id) => {
+      ["qb-date", "qb-checkout", "checkin", "checkout", "group-arrival", "group-departure"].forEach((id) => {
         const input = document.getElementById(id);
         if (input) input.min = today;
       });
@@ -1349,8 +1422,110 @@
       return GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes("PASTE_GOOGLE");
     }
 
+    function formatRupees(value) {
+      return "Rs." + Number(value || 0).toLocaleString("en-IN");
+    }
+
     function plural(value, word) {
       return value + " " + word + (value === 1 ? "" : "s");
+    }
+
+    function getSelectLabel(form, id) {
+      const el = form.querySelector("#" + id);
+      if (!el) return "";
+      const option = el.options[el.selectedIndex];
+      return option ? option.text.trim() : el.value.trim();
+    }
+
+    function getNights(checkin, checkout) {
+      if (!checkin || !checkout) return 1;
+      const start = new Date(checkin + "T00:00:00");
+      const end = new Date(checkout + "T00:00:00");
+      const diff = Math.round((end - start) / 86400000);
+      return Math.max(diff, 1);
+    }
+
+    function distributeGuests(guests, roomCount, maxOccupancy) {
+      const split = [];
+      let remaining = guests;
+      for (let i = 0; i < roomCount; i += 1) {
+        const roomsLeft = roomCount - i - 1;
+        const guestsHere = Math.min(maxOccupancy, Math.max(1, remaining - roomsLeft));
+        split.push(guestsHere);
+        remaining -= guestsHere;
+      }
+      return split;
+    }
+
+    function calculateBookingSummary(roomKey, guests, checkin, checkout) {
+      const room = ROOM_TYPES[roomKey] || ROOM_TYPES.standard;
+      const cleanGuests = Math.max(parseInt(guests, 10) || 1, 1);
+      const nights = getNights(checkin, checkout);
+      const roomCount = Math.ceil(cleanGuests / room.maxOccupancy);
+      const guestSplit = distributeGuests(cleanGuests, roomCount, room.maxOccupancy);
+      const baseGuestCapacity = roomCount * room.baseOccupancy;
+      const extraGuests = Math.max(cleanGuests - baseGuestCapacity, 0);
+      const roomTotal = roomCount * room.price * nights;
+      const extraTotal = extraGuests * EXTRA_GUEST_CHARGE * nights;
+      const total = roomTotal + extraTotal;
+      const available = roomCount <= room.inventory;
+      const stayText = checkin && checkout ? checkin + " to " + checkout : "Selected date";
+      const lines = [
+        "Guests: " + plural(cleanGuests, "person"),
+        "Stay: " + stayText + " (" + plural(nights, "night") + ")",
+        "Room type: " + room.label,
+        "Rooms required: " + plural(roomCount, "room") + " (" + guestSplit.join(" + ") + " guests)",
+        "Room price: " + formatRupees(room.price) + " x " + roomCount + " x " + plural(nights, "night") + " = " + formatRupees(roomTotal),
+        "Extra guest charge: " + formatRupees(EXTRA_GUEST_CHARGE) + " x " + extraGuests + " x " + plural(nights, "night") + " = " + formatRupees(extraTotal)
+      ];
+
+      if (!available) {
+        lines.push("Selected room category has " + room.inventory + " rooms online, so hotel confirmation is required.");
+      }
+
+      return {
+        available,
+        room,
+        roomCount,
+        guestSplit,
+        guests: cleanGuests,
+        nights,
+        extraGuests,
+        roomTotal,
+        extraTotal,
+        total,
+        lines,
+        summary: lines.join("; ") + "; Estimated total: " + formatRupees(total) + "."
+      };
+    }
+
+    function renderBookingSummary(summary, targetId) {
+      const box = document.getElementById(targetId);
+      if (!box) return;
+
+      box.className = "booking-summary show" + (summary.available ? "" : " warning");
+      box.innerHTML = [
+        "<strong>Room availability summary</strong>",
+        "<ul>" + summary.lines.map((line) => "<li>" + line + "</li>").join("") + "</ul>",
+        "<div class=\"total\">Estimated total: " + formatRupees(summary.total) + "</div>",
+        "<span>This is an estimate based on selected dates, room type and occupancy. Final availability will be confirmed by Luxmi Hotel.</span>"
+      ].join("");
+    }
+
+    function resetQuickBookingSummary() {
+      const form = document.getElementById("booking");
+      const box = document.getElementById("booking-summary");
+      if (!form || !box) return;
+      form.dataset.summaryReady = "false";
+      box.className = "booking-summary";
+      box.innerHTML = "";
+      const button = form.querySelector("button[type='submit']");
+      if (button) button.textContent = "Check Availability";
+      const status = document.getElementById("booking-status");
+      if (status) {
+        status.textContent = "";
+        status.className = "form-status";
+      }
     }
 
     function allocateAcRooms(guests) {
@@ -1533,6 +1708,7 @@
         "Persons: " + (payload.guests || "Not mentioned"),
         "Check-in: " + (payload.checkin || "Not decided"),
         "Check-out: " + (payload.checkout || "Not decided"),
+        payload.total ? "Estimated total: " + payload.total : "",
         payload.message ? "Message: " + payload.message : ""
       ].filter(Boolean).join("\n");
 
@@ -1574,17 +1750,36 @@
       const isQuickForm = form.id === "booking";
       const statusId = isQuickForm ? "booking-status" : "contact-status";
       const button = form.querySelector("button[type='submit']");
+      const roomKey = scopedValue(form, isQuickForm ? "qb-room" : "room") || "standard";
+      const checkin = scopedValue(form, isQuickForm ? "qb-date" : "checkin");
+      const checkout = scopedValue(form, isQuickForm ? "qb-checkout" : "checkout");
+      const guests = scopedValue(form, isQuickForm ? "qb-guests" : "contact-guests");
+      const bookingSummary = calculateBookingSummary(roomKey, guests, checkin, checkout);
+
+      if (isQuickForm && form.dataset.summaryReady !== "true") {
+        renderBookingSummary(bookingSummary, "booking-summary");
+        form.dataset.summaryReady = "true";
+        if (button) button.textContent = "Send Enquiry";
+        showFormStatus(statusId, "Summary ready. Click Send Enquiry to share these details with the hotel.", "success");
+        return;
+      }
+
       const payload = {
         action: "booking",
         source: isQuickForm ? "Quick booking form" : "Contact booking form",
         name: scopedValue(form, isQuickForm ? "qb-name" : "name"),
         phone: scopedValue(form, isQuickForm ? "qb-phone" : "phone"),
         email: scopedValue(form, isQuickForm ? "qb-email" : "email"),
-        checkin: scopedValue(form, isQuickForm ? "qb-date" : "checkin"),
-        checkout: isQuickForm ? "" : scopedValue(form, "checkout"),
-        guests: scopedValue(form, isQuickForm ? "qb-guests" : "contact-guests"),
-        room: scopedValue(form, isQuickForm ? "qb-room" : "room"),
-        message: isQuickForm ? "" : scopedValue(form, "message")
+        checkin,
+        checkout,
+        guests,
+        room: getSelectLabel(form, isQuickForm ? "qb-room" : "room"),
+        rooms: plural(bookingSummary.roomCount, "room"),
+        total: formatRupees(bookingSummary.total),
+        message: [
+          "Room summary: " + bookingSummary.summary,
+          isQuickForm ? "" : scopedValue(form, "message")
+        ].filter(Boolean).join("\n")
       };
 
       try {
@@ -1595,6 +1790,15 @@
           showFormStatus(statusId, "Enquiry sent. Please check your email for the confirmation copy.", "success");
           form.reset();
           setMinimumDates();
+          if (isQuickForm) {
+            form.dataset.summaryReady = "false";
+            const summaryBox = document.getElementById("booking-summary");
+            if (summaryBox) {
+              summaryBox.className = "booking-summary";
+              summaryBox.innerHTML = "";
+            }
+            if (button) button.textContent = "Check Availability";
+          }
           return;
         }
 
@@ -1670,6 +1874,12 @@
       const input = document.getElementById(id);
       if (input) input.addEventListener("input", updateGroupPlan);
       if (input) input.addEventListener("change", updateGroupPlan);
+    });
+
+    ["qb-name", "qb-phone", "qb-email", "qb-date", "qb-checkout", "qb-guests", "qb-room"].forEach((id) => {
+      const input = document.getElementById(id);
+      if (input) input.addEventListener("input", resetQuickBookingSummary);
+      if (input) input.addEventListener("change", resetQuickBookingSummary);
     });
 
     document.addEventListener("keydown", (event) => {
