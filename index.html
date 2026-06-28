@@ -522,6 +522,40 @@
     .field.full { grid-column: 1 / -1; }
     textarea { min-height: 104px; resize: vertical; }
     .form-note { color: var(--muted); font-size: 13px; margin-top: 12px; }
+
+    .policy-box {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 8px;
+      padding: 14px 16px;
+      border: 1px solid #dec798;
+      border-radius: var(--radius);
+      background: #fffaf2;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .policy-box strong { color: var(--wine); }
+
+    .policy-box label {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .policy-box input {
+      width: auto;
+      margin-top: 3px;
+      accent-color: var(--wine);
+    }
+
     .group-plan {
       display: grid;
       gap: 10px;
@@ -962,6 +996,12 @@
           <option value="deluxeFour">Deluxe Four Bed AC - Rs.1800</option>
         </select>
       </div>
+      <div class="policy-box">
+        <strong>Payment and hotel rules</strong>
+        <span>Guest pays 20% advance online after availability confirmation. Remaining 80% is payable at the hotel during check-in. Booking is non-refundable.</span>
+        <span>Unmarried and unrelated couples are not allowed. Valid government ID is required at check-in.</span>
+        <label><input id="qb-policy" type="checkbox" required> I agree to the payment terms, non-refundable booking policy and hotel rules.</label>
+      </div>
       <div class="booking-summary" id="booking-summary" aria-live="polite"></div>
       <button class="btn btn-primary" type="submit">Check Availability</button>
       <p class="form-status" id="booking-status" role="status"></p>
@@ -1253,6 +1293,12 @@
             <label for="message">Message</label>
             <textarea id="message" placeholder="Number of guests, arrival time or any special request"></textarea>
           </div>
+          <div class="policy-box">
+            <strong>Payment and hotel rules</strong>
+            <span>Guest pays 20% advance online after availability confirmation. Remaining 80% is payable at the hotel during check-in. Booking is non-refundable.</span>
+            <span>Unmarried and unrelated couples are not allowed. Valid government ID is required at check-in.</span>
+            <label><input id="booking-policy" type="checkbox" required> I agree to the payment terms, non-refundable booking policy and hotel rules.</label>
+          </div>
           <div class="field full">
             <button class="btn btn-primary" type="submit">Send Booking Enquiry</button>
             <p class="form-note">This booking enquiry will be saved in the hotel Google Sheet and emailed to the hotel.</p>
@@ -1350,6 +1396,14 @@
       }
     };
     const EXTRA_GUEST_CHARGE = 300;
+    const ADVANCE_PERCENT = 20;
+    const BOOKING_POLICIES = [
+      "20% advance payment is required online after availability confirmation.",
+      "Remaining 80% payment is payable at the hotel during check-in.",
+      "The booking is non-refundable.",
+      "Unmarried and unrelated couples are not allowed.",
+      "Valid government ID is required at check-in."
+    ];
     const roomGalleries = {
       standard: {
         title: "Standard Double Room NON AC",
@@ -1468,6 +1522,8 @@
       const roomTotal = roomCount * room.price * nights;
       const extraTotal = extraGuests * EXTRA_GUEST_CHARGE * nights;
       const total = roomTotal + extraTotal;
+      const advanceAmount = Math.ceil(total * ADVANCE_PERCENT / 100);
+      const balanceAmount = Math.max(total - advanceAmount, 0);
       const available = roomCount <= room.inventory;
       const stayText = checkin && checkout ? checkin + " to " + checkout : "Selected date";
       const lines = [
@@ -1476,7 +1532,9 @@
         "Room type: " + room.label,
         "Rooms required: " + plural(roomCount, "room") + " (" + guestSplit.join(" + ") + " guests)",
         "Room price: " + formatRupees(room.price) + " x " + roomCount + " x " + plural(nights, "night") + " = " + formatRupees(roomTotal),
-        "Extra guest charge: " + formatRupees(EXTRA_GUEST_CHARGE) + " x " + extraGuests + " x " + plural(nights, "night") + " = " + formatRupees(extraTotal)
+        "Extra guest charge: " + formatRupees(EXTRA_GUEST_CHARGE) + " x " + extraGuests + " x " + plural(nights, "night") + " = " + formatRupees(extraTotal),
+        "20% advance payable online: " + formatRupees(advanceAmount),
+        "Balance payable at hotel: " + formatRupees(balanceAmount)
       ];
 
       if (!available) {
@@ -1494,6 +1552,8 @@
         roomTotal,
         extraTotal,
         total,
+        advanceAmount,
+        balanceAmount,
         lines,
         summary: lines.join("; ") + "; Estimated total: " + formatRupees(total) + "."
       };
@@ -1508,7 +1568,9 @@
         "<strong>Room availability summary</strong>",
         "<ul>" + summary.lines.map((line) => "<li>" + line + "</li>").join("") + "</ul>",
         "<div class=\"total\">Estimated total: " + formatRupees(summary.total) + "</div>",
-        "<span>This is an estimate based on selected dates, room type and occupancy. Final availability will be confirmed by Luxmi Hotel.</span>"
+        "<div class=\"total\">Pay online now: " + formatRupees(summary.advanceAmount) + " (20% advance)</div>",
+        "<span>Balance payable at hotel: " + formatRupees(summary.balanceAmount) + ". This is an estimate based on selected dates, room type and occupancy. Final availability and payment link will be confirmed by Luxmi Hotel.</span>",
+        "<span><strong>Rules:</strong> " + BOOKING_POLICIES.join(" ") + "</span>"
       ].join("");
     }
 
@@ -1709,6 +1771,9 @@
         "Check-in: " + (payload.checkin || "Not decided"),
         "Check-out: " + (payload.checkout || "Not decided"),
         payload.total ? "Estimated total: " + payload.total : "",
+        payload.advance ? "20% advance payable online: " + payload.advance : "",
+        payload.balance ? "Balance payable at hotel: " + payload.balance : "",
+        payload.policies ? "Policies: " + payload.policies : "",
         payload.message ? "Message: " + payload.message : ""
       ].filter(Boolean).join("\n");
 
@@ -1755,6 +1820,12 @@
       const checkout = scopedValue(form, isQuickForm ? "qb-checkout" : "checkout");
       const guests = scopedValue(form, isQuickForm ? "qb-guests" : "contact-guests");
       const bookingSummary = calculateBookingSummary(roomKey, guests, checkin, checkout);
+      const policyAccepted = !!form.querySelector("input[type='checkbox'][required]:checked");
+
+      if (!policyAccepted) {
+        showFormStatus(statusId, "Please accept the payment terms and hotel rules before continuing.", "error");
+        return;
+      }
 
       if (isQuickForm && form.dataset.summaryReady !== "true") {
         renderBookingSummary(bookingSummary, "booking-summary");
@@ -1776,8 +1847,14 @@
         room: getSelectLabel(form, isQuickForm ? "qb-room" : "room"),
         rooms: plural(bookingSummary.roomCount, "room"),
         total: formatRupees(bookingSummary.total),
+        advance: formatRupees(bookingSummary.advanceAmount),
+        balance: formatRupees(bookingSummary.balanceAmount),
+        paymentTerms: "20% advance payable online; remaining 80% payable at hotel.",
+        policies: BOOKING_POLICIES.join(" "),
         message: [
           "Room summary: " + bookingSummary.summary,
+          "Payment terms: 20% advance payable online (" + formatRupees(bookingSummary.advanceAmount) + "); balance payable at hotel (" + formatRupees(bookingSummary.balanceAmount) + ").",
+          "Policies: " + BOOKING_POLICIES.join(" "),
           isQuickForm ? "" : scopedValue(form, "message")
         ].filter(Boolean).join("\n")
       };
@@ -1876,7 +1953,7 @@
       if (input) input.addEventListener("change", updateGroupPlan);
     });
 
-    ["qb-name", "qb-phone", "qb-email", "qb-date", "qb-checkout", "qb-guests", "qb-room"].forEach((id) => {
+    ["qb-name", "qb-phone", "qb-email", "qb-date", "qb-checkout", "qb-guests", "qb-room", "qb-policy"].forEach((id) => {
       const input = document.getElementById(id);
       if (input) input.addEventListener("input", resetQuickBookingSummary);
       if (input) input.addEventListener("change", resetQuickBookingSummary);
