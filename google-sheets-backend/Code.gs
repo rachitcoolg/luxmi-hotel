@@ -12,7 +12,7 @@ const HOTEL_EMAILS_DEFAULT = "luxmihotelbooking@gmail.com,luxmihotel2017@gmail.c
 const HOTEL_NAME = "Luxmi Hotel";
 const HOTEL_PHONE = "+91 70074 17970";
 const SPREADSHEET_NAME = "Luxmi Hotel Booking Admin";
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwN09jObid5UTMDhlht_LwD-FJK7Ib5KE6duqQRY3nZ6KtYBpyp28H5oxgOmoea6MBVbg/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwhnWXhGxc9AaYw82Tw-e_GfuuXwTLX9iMnkaQdqvLf5ZNeOyCScjAXi8wzeQ2jtWoB/exec";
 
 function getSpreadsheet_() {
   const props = PropertiesService.getScriptProperties();
