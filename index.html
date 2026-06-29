@@ -996,12 +996,6 @@
           <option value="deluxeFour">Deluxe Four Bed AC - Rs.1800</option>
         </select>
       </div>
-      <div class="policy-box">
-        <strong>Payment and hotel rules</strong>
-        <span>Guest pays 20% advance online after availability confirmation. Remaining 80% is payable at the hotel during check-in. Booking is non-refundable.</span>
-        <span>Unmarried and unrelated couples are not allowed. Valid government ID is required at check-in.</span>
-        <label><input id="qb-policy" type="checkbox" required> I agree to the payment terms, non-refundable booking policy and hotel rules.</label>
-      </div>
       <div class="booking-summary" id="booking-summary" aria-live="polite"></div>
       <button class="btn btn-primary" type="submit">Check Availability</button>
       <p class="form-status" id="booking-status" role="status"></p>
@@ -1570,7 +1564,12 @@
         "<div class=\"total\">Estimated total: " + formatRupees(summary.total) + "</div>",
         "<div class=\"total\">Pay online now: " + formatRupees(summary.advanceAmount) + " (20% advance)</div>",
         "<span>Balance payable at hotel: " + formatRupees(summary.balanceAmount) + ". This is an estimate based on selected dates, room type and occupancy. Final availability and payment link will be confirmed by Luxmi Hotel.</span>",
-        "<span><strong>Rules:</strong> " + BOOKING_POLICIES.join(" ") + "</span>"
+        "<div class=\"policy-box\">",
+          "<strong>Payment and hotel rules</strong>",
+          "<span>Guest pays 20% advance online after availability confirmation. Remaining 80% is payable at the hotel during check-in. Booking is non-refundable.</span>",
+          "<span>Unmarried and unrelated couples are not allowed. Valid government ID is required at check-in.</span>",
+          "<label><input id=\"qb-policy\" type=\"checkbox\" required> I agree to the payment terms, non-refundable booking policy and hotel rules.</label>",
+        "</div>"
       ].join("");
     }
 
@@ -1820,18 +1819,18 @@
       const checkout = scopedValue(form, isQuickForm ? "qb-checkout" : "checkout");
       const guests = scopedValue(form, isQuickForm ? "qb-guests" : "contact-guests");
       const bookingSummary = calculateBookingSummary(roomKey, guests, checkin, checkout);
-      const policyAccepted = !!form.querySelector("input[type='checkbox'][required]:checked");
-
-      if (!policyAccepted) {
-        showFormStatus(statusId, "Please accept the payment terms and hotel rules before continuing.", "error");
-        return;
-      }
 
       if (isQuickForm && form.dataset.summaryReady !== "true") {
         renderBookingSummary(bookingSummary, "booking-summary");
         form.dataset.summaryReady = "true";
         if (button) button.textContent = "Send Enquiry";
         showFormStatus(statusId, "Summary ready. Click Send Enquiry to share these details with the hotel.", "success");
+        return;
+      }
+
+      const policyAccepted = !!form.querySelector("input[type='checkbox'][required]:checked");
+      if (!policyAccepted) {
+        showFormStatus(statusId, "Please accept the payment terms and hotel rules before continuing.", "error");
         return;
       }
 
