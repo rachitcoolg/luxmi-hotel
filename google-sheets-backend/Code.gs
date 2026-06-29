@@ -13,6 +13,9 @@ const HOTEL_NAME = "Luxmi Hotel";
 const HOTEL_PHONE = "+91 70074 17970";
 const SPREADSHEET_NAME = "Luxmi Hotel Booking Admin";
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxTYl338ahlv8iQCQMltnxRWv6ZDaziPXX9OdLP5fYbhQyDsxJ3ys6aAusEt5Xa7N1x/exec";
+const PAYU_MID = "13689292";
+const PAYU_PAYMENT_URL = "https://secure.payu.in/_payment";
+const BOOKING_HEADERS = ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Rooms Required", "Total", "20% Advance", "Balance at Hotel", "Payment Terms", "Policies", "Message", "Source", "PayU Txn ID", "PayU Payment ID", "Payment Status", "Payment Updated At"];
 
 function getSpreadsheet_() {
   const props = PropertiesService.getScriptProperties();
@@ -39,7 +42,7 @@ function setup() {
   ensureSheet_(ss, SHEETS.inventory, ["Date", "Room Type", "Available Rooms", "Price Override", "Notes", "Updated At"]);
   ensureSheet_(ss, SHEETS.calendar, ["Date"]);
   ensureSheet_(ss, SHEETS.today, ["Today Check-in Checkout"]);
-  ensureSheet_(ss, SHEETS.bookings, ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Rooms Required", "Total", "20% Advance", "Balance at Hotel", "Payment Terms", "Policies", "Message", "Source"]);
+  ensureSheet_(ss, SHEETS.bookings, BOOKING_HEADERS);
   ensureSheet_(ss, SHEETS.groups, ["Timestamp", "Enquiry ID", "Status", "Name", "Phone", "Email", "Arrival", "Departure", "Persons", "Rooms", "Purpose", "Message", "Source"]);
 
   seedRooms_(ss.getSheetByName(SHEETS.rooms));
@@ -105,12 +108,14 @@ function createTodayDashboard() {
 function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
   if (params.health === "1") return text_("OK");
+  if (params.txnid && params.status) return handlePayuReturn_(params);
   if (!isAdmin_(params.adminKey)) return adminLogin_();
   return adminPage_(params.adminKey, params.message || "");
 }
 
 function doPost(e) {
   const data = parsePost_(e);
+  if (data.txnid && data.status) return handlePayuReturn_(data);
   const action = String(data.action || "booking").trim();
 
   if (action === "booking") return handleBooking_(data);
@@ -133,6 +138,10 @@ function doPost(e) {
     updateBookingStatus_(data);
     return adminPage_(data.adminKey, "Booking status updated.");
   }
+  if (action === "update-payu") {
+    updatePayuSettings_(data);
+    return adminPage_(data.adminKey, "PayU settings updated.");
+  }
   return text_("Unknown action");
 }
 
@@ -140,10 +149,12 @@ function handleBooking_(data) {
   const ss = getSpreadsheet_();
   setupIfNeeded_(ss);
   const id = "LH-" + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd-HHmmss");
+  const wantsPayu = String(data.payuCheckout || "").toLowerCase() === "yes";
+  const payuTxnId = wantsPayu ? makePayuTxnId_(id) : "";
   const row = [
     new Date(),
     id,
-    "Pending",
+    wantsPayu ? "Payment Pending" : "Pending",
     clean_(data.name),
     clean_(data.phone),
     clean_(data.email),
@@ -159,9 +170,14 @@ function handleBooking_(data) {
     clean_(data.policies),
     clean_(data.message),
     clean_(data.source || "Website"),
+    payuTxnId,
+    "",
+    wantsPayu ? "Awaiting PayU payment" : "",
+    wantsPayu ? new Date() : "",
   ];
   ss.getSheetByName(SHEETS.bookings).appendRow(row);
   sendBookingEmails_(id, data);
+  if (wantsPayu) return payuCheckoutPage_(id, payuTxnId, data);
   return json_({ ok: true, id: id, message: "Booking enquiry received" });
 }
 
@@ -424,6 +440,7 @@ function adminPage_(adminKey, message) {
   const calendarRows = getCalendarAdminRows_(ss, 30);
   const calendar = ss.getSheetByName(SHEETS.calendar);
   const todaySheet = ss.getSheetByName(SHEETS.today);
+  const payu = getPayuSettings_();
   const url = ScriptApp.getService().getUrl() || WEB_APP_URL;
   const sheetUrl = ss.getUrl();
   const calendarUrl = sheetUrl + "#gid=" + (calendar ? calendar.getSheetId() : "");
@@ -440,6 +457,7 @@ function adminPage_(adminKey, message) {
       <div class="admin-tabs">
         <a href="#rates">Rates</a>
         <a href="#calendar">Inventory Calendar</a>
+        <a href="#payment">PayU</a>
         <a href="#today">Today Check-in / Check-out</a>
         <a href="#bookings">Bookings</a>
         <a href="${escapeHtml_(sheetUrl)}" target="_blank" rel="noopener">Open Sheet</a>
@@ -465,6 +483,20 @@ function adminPage_(adminKey, message) {
           <label>Notes<input name="notes"></label><button type="submit">Save Inventory</button>
         </form>
         <div class="scroll">${table_(inventory)}</div>
+      </section>
+      <section id="payment"><h2>PayU Payment Gateway</h2>
+        <p class="small">MID is saved as ${escapeHtml_(PAYU_MID)}. Enter Merchant Key and Salt from PayU Dashboard. Salt is stored only in Apps Script properties, not in website code.</p>
+        <p class="small"><strong>Status:</strong> ${payu.configured ? "Configured" : "Not configured yet"} | <strong>Mode:</strong> ${escapeHtml_(payu.environment)} | <strong>Payment URL:</strong> ${escapeHtml_(payu.paymentUrl)}</p>
+        <form method="post" action="${url}">
+          <input type="hidden" name="action" value="update-payu"><input type="hidden" name="adminKey" value="${escapeHtml_(adminKey)}">
+          <div class="grid">
+            <label>MID<input name="mid" value="${escapeHtml_(payu.mid)}" readonly></label>
+            <label>Merchant Key<input name="merchantKey" value="${escapeHtml_(payu.key)}" placeholder="Paste PayU Merchant Key"></label>
+            <label>Merchant Salt<input name="merchantSalt" type="password" placeholder="${payu.hasSalt ? "Leave blank to keep existing salt" : "Paste PayU Salt"}"></label>
+            <label>Environment<select name="environment"><option ${payu.environment === "live" ? "selected" : ""}>live</option><option ${payu.environment === "test" ? "selected" : ""}>test</option></select></label>
+          </div>
+          <button type="submit">Save PayU Settings</button>
+        </form>
       </section>
       <section id="bookings"><h2>Recent Bookings</h2><div class="scroll">${bookingsTable_(bookings, adminKey, url)}</div></section>
       <section><h2>Group Enquiries</h2><div class="scroll">${table_(groups)}</div></section>
@@ -529,6 +561,193 @@ function updateInventory_(data) {
     clean_(data.notes),
     new Date(),
   ]);
+}
+
+function payuCheckoutPage_(bookingId, txnId, data) {
+  const payu = getPayuSettings_();
+  if (!payu.configured) {
+    return HtmlService.createHtmlOutput(`
+      <main style="max-width:640px;margin:60px auto;font-family:Arial,sans-serif;line-height:1.5;color:#191312">
+        <h1 style="color:#7a1720">Booking enquiry saved</h1>
+        <p>Your booking enquiry ID is <strong>${escapeHtml_(bookingId)}</strong>.</p>
+        <p>PayU payment is not fully configured yet. The hotel has received your enquiry and will contact you for payment confirmation.</p>
+        <p><a href="https://luxmihotel.com" style="display:inline-block;padding:12px 16px;background:#7a1720;color:#fff;text-decoration:none;border-radius:6px">Back to website</a></p>
+      </main>
+    `).setTitle("Luxmi Hotel Payment Pending");
+  }
+
+  const fields = payuFields_(payu, bookingId, txnId, data);
+  const inputs = Object.keys(fields).map((key) => `<input type="hidden" name="${escapeHtml_(key)}" value="${escapeHtml_(fields[key])}">`).join("");
+  return HtmlService.createHtmlOutput(`
+    <!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Redirecting to PayU</title></head>
+    <body style="margin:0;background:#fffaf4;font-family:Arial,sans-serif;color:#191312">
+      <main style="max-width:640px;margin:70px auto;padding:24px;text-align:center">
+        <h1 style="color:#7a1720">Redirecting to secure payment</h1>
+        <p>Booking ID: <strong>${escapeHtml_(bookingId)}</strong></p>
+        <p>Advance amount: <strong>Rs.${escapeHtml_(fields.amount)}</strong></p>
+        <p>Please wait while we open PayU secure checkout.</p>
+        <form id="payuForm" method="post" action="${escapeHtml_(payu.paymentUrl)}">${inputs}<button type="submit" style="padding:12px 18px;border:0;border-radius:6px;background:#7a1720;color:#fff;font-weight:700">Proceed to PayU</button></form>
+      </main>
+      <script>setTimeout(function(){document.getElementById("payuForm").submit();},800);</script>
+    </body></html>
+  `).setTitle("Redirecting to PayU");
+}
+
+function payuFields_(payu, bookingId, txnId, data) {
+  const amount = moneyNumber_(data.advance);
+  const firstname = firstName_(data.name);
+  const email = clean_(data.email) || "luxmihotelbooking@gmail.com";
+  const productinfo = "Luxmi Hotel 20% advance " + bookingId;
+  const hash = payuRequestHash_(payu.key, txnId, amount, productinfo, firstname, email, payu.salt);
+  return {
+    key: payu.key,
+    txnid: txnId,
+    amount: amount,
+    productinfo: productinfo,
+    firstname: firstname,
+    email: email,
+    phone: digitsOnly_(data.phone),
+    surl: payuReturnUrl_(),
+    furl: payuReturnUrl_(),
+    hash: hash,
+  };
+}
+
+function handlePayuReturn_(data) {
+  const payu = getPayuSettings_();
+  const status = clean_(data.status);
+  const txnId = clean_(data.txnid);
+  const payuId = clean_(data.mihpayid);
+  const verified = payu.configured ? verifyPayuResponse_(data, payu.salt) : false;
+  const bookingId = updatePayuBookingStatus_(txnId, payuId, status, verified);
+  const isSuccess = status.toLowerCase() === "success" && verified;
+  return HtmlService.createHtmlOutput(`
+    <main style="max-width:680px;margin:60px auto;font-family:Arial,sans-serif;line-height:1.55;color:#191312;padding:20px">
+      <div style="border:1px solid #ead8c2;border-radius:12px;overflow:hidden;background:#fff">
+        <div style="background:#7a1720;color:#fff;padding:22px">
+          <div style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#dec798;font-weight:700">Luxmi Hotel Payment</div>
+          <h1 style="margin:8px 0 0;font-family:Georgia,serif">${isSuccess ? "Payment received" : "Payment not confirmed"}</h1>
+        </div>
+        <div style="padding:22px">
+          <p><strong>Booking ID:</strong> ${escapeHtml_(bookingId || "Pending lookup")}</p>
+          <p><strong>PayU Transaction:</strong> ${escapeHtml_(txnId)}</p>
+          <p><strong>PayU Payment ID:</strong> ${escapeHtml_(payuId)}</p>
+          <p><strong>Status:</strong> ${escapeHtml_(status || "Unknown")}</p>
+          <p>${isSuccess ? "Thank you. Your advance payment has been recorded. Please keep this page or your PayU receipt for check-in." : "If amount was deducted, please contact Luxmi Hotel with your PayU transaction details."}</p>
+          <p><a href="https://luxmihotel.com" style="display:inline-block;padding:12px 16px;background:#7a1720;color:#fff;text-decoration:none;border-radius:6px">Back to Luxmi Hotel</a></p>
+        </div>
+      </div>
+    </main>
+  `).setTitle("Luxmi Hotel Payment Status");
+}
+
+function updatePayuSettings_(data) {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty("PAYU_MID", PAYU_MID);
+  props.setProperty("PAYU_ENVIRONMENT", clean_(data.environment || "live").toLowerCase() === "test" ? "test" : "live");
+  if (clean_(data.merchantKey)) props.setProperty("PAYU_KEY", clean_(data.merchantKey));
+  if (clean_(data.merchantSalt)) props.setProperty("PAYU_SALT", clean_(data.merchantSalt));
+}
+
+function getPayuSettings_() {
+  const props = PropertiesService.getScriptProperties();
+  const environment = clean_(props.getProperty("PAYU_ENVIRONMENT") || "live").toLowerCase() === "test" ? "test" : "live";
+  const key = clean_(props.getProperty("PAYU_KEY"));
+  const salt = clean_(props.getProperty("PAYU_SALT"));
+  return {
+    mid: props.getProperty("PAYU_MID") || PAYU_MID,
+    key: key,
+    salt: salt,
+    hasSalt: !!salt,
+    environment: environment,
+    paymentUrl: environment === "test" ? "https://test.payu.in/_payment" : PAYU_PAYMENT_URL,
+    configured: !!(key && salt),
+  };
+}
+
+function payuRequestHash_(key, txnId, amount, productinfo, firstname, email, salt) {
+  return sha512_(key + "|" + txnId + "|" + amount + "|" + productinfo + "|" + firstname + "|" + email + "|||||||||||" + salt);
+}
+
+function verifyPayuResponse_(data, salt) {
+  const hashString = [
+    salt,
+    clean_(data.status),
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    clean_(data.udf5),
+    clean_(data.udf4),
+    clean_(data.udf3),
+    clean_(data.udf2),
+    clean_(data.udf1),
+    clean_(data.email),
+    clean_(data.firstname),
+    clean_(data.productinfo),
+    clean_(data.amount),
+    clean_(data.txnid),
+    clean_(data.key),
+  ].join("|");
+  return sha512_(hashString).toLowerCase() === clean_(data.hash).toLowerCase();
+}
+
+function sha512_(value) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_512, value, Utilities.Charset.UTF_8);
+  return bytes.map((byte) => {
+    const v = byte < 0 ? byte + 256 : byte;
+    return ("0" + v.toString(16)).slice(-2);
+  }).join("");
+}
+
+function updatePayuBookingStatus_(txnId, payuId, status, verified) {
+  const ss = getSpreadsheet_();
+  setupIfNeeded_(ss);
+  const sheet = ss.getSheetByName(SHEETS.bookings);
+  const values = sheet.getDataRange().getValues();
+  if (values.length < 2) return "";
+  const headers = values[0];
+  const txnCol = headers.indexOf("PayU Txn ID");
+  const payuIdCol = headers.indexOf("PayU Payment ID");
+  const payStatusCol = headers.indexOf("Payment Status");
+  const payUpdatedCol = headers.indexOf("Payment Updated At");
+  const statusCol = headers.indexOf("Status");
+  const bookingIdCol = headers.indexOf("Booking ID");
+  for (let i = 1; i < values.length; i += 1) {
+    if (String(values[i][txnCol]) === txnId) {
+      const row = i + 1;
+      if (payuIdCol >= 0) sheet.getRange(row, payuIdCol + 1).setValue(payuId);
+      if (payStatusCol >= 0) sheet.getRange(row, payStatusCol + 1).setValue((verified ? "Verified " : "Unverified ") + status);
+      if (payUpdatedCol >= 0) sheet.getRange(row, payUpdatedCol + 1).setValue(new Date());
+      if (statusCol >= 0 && String(status).toLowerCase() === "success" && verified) sheet.getRange(row, statusCol + 1).setValue("Advance Paid");
+      return bookingIdCol >= 0 ? values[i][bookingIdCol] : "";
+    }
+  }
+  return "";
+}
+
+function payuReturnUrl_() {
+  return ScriptApp.getService().getUrl() || WEB_APP_URL;
+}
+
+function makePayuTxnId_(bookingId) {
+  return clean_(bookingId).replace(/[^A-Za-z0-9]/g, "").slice(0, 25);
+}
+
+function moneyNumber_(value) {
+  const numeric = Number(String(value || "").replace(/[^0-9.]/g, "")) || 0;
+  return numeric.toFixed(2);
+}
+
+function digitsOnly_(value) {
+  return String(value || "").replace(/\D/g, "").slice(-10);
+}
+
+function firstName_(value) {
+  return clean_(value).split(/\s+/)[0] || "Guest";
 }
 
 function calendarAdmin_(rows, adminKey, url) {
@@ -670,7 +889,7 @@ function setupIfNeeded_(ss) {
   ensureSheet_(ss, SHEETS.inventory, ["Date", "Room Type", "Available Rooms", "Price Override", "Notes", "Updated At"]);
   ensureSheet_(ss, SHEETS.calendar, ["Date"]);
   ensureSheet_(ss, SHEETS.today, ["Today Check-in Checkout"]);
-  ensureSheet_(ss, SHEETS.bookings, ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Rooms Required", "Total", "20% Advance", "Balance at Hotel", "Payment Terms", "Policies", "Message", "Source"]);
+  ensureSheet_(ss, SHEETS.bookings, BOOKING_HEADERS);
   ensureSheet_(ss, SHEETS.groups, ["Timestamp", "Enquiry ID", "Status", "Name", "Phone", "Email", "Arrival", "Departure", "Persons", "Rooms", "Purpose", "Message", "Source"]);
   seedRooms_(ss.getSheetByName(SHEETS.rooms));
   buildTodayDashboard_(ss);
