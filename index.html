@@ -1391,6 +1391,7 @@
     };
     const EXTRA_GUEST_CHARGE = 300;
     const ADVANCE_PERCENT = 20;
+    const PAYU_ADVANCE_PAYMENT_ENABLED = true;
     const BOOKING_POLICIES = [
       "20% advance payment is required online after availability confirmation.",
       "Remaining 80% payment is payable at the hotel during check-in.",
@@ -1563,7 +1564,7 @@
         "<ul>" + summary.lines.map((line) => "<li>" + line + "</li>").join("") + "</ul>",
         "<div class=\"total\">Estimated total: " + formatRupees(summary.total) + "</div>",
         "<div class=\"total\">Pay online now: " + formatRupees(summary.advanceAmount) + " (20% advance)</div>",
-        "<span>Balance payable at hotel: " + formatRupees(summary.balanceAmount) + ". This is an estimate based on selected dates, room type and occupancy. Final availability and payment link will be confirmed by Luxmi Hotel.</span>",
+        "<span>Balance payable at hotel: " + formatRupees(summary.balanceAmount) + ". This is an estimate based on selected dates, room type and occupancy. After accepting rules, you will be redirected to PayU secure checkout for the 20% advance.</span>",
         "<div class=\"policy-box\">",
           "<strong>Payment and hotel rules</strong>",
           "<span>Guest pays 20% advance online after availability confirmation. Remaining 80% is payable at the hotel during check-in. Booking is non-refundable.</span>",
@@ -1759,6 +1760,24 @@
       return true;
     }
 
+    function postBookingForPayu(payload) {
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = GOOGLE_SCRIPT_URL;
+      form.style.display = "none";
+
+      Object.entries(payload).forEach(([key, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value == null ? "" : String(value);
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+    }
+
     function openWhatsAppBooking(payload) {
       const text = [
         "Hello Luxmi Hotel, I would like to book a room.",
@@ -1823,8 +1842,8 @@
       if (isQuickForm && form.dataset.summaryReady !== "true") {
         renderBookingSummary(bookingSummary, "booking-summary");
         form.dataset.summaryReady = "true";
-        if (button) button.textContent = "Send Enquiry";
-        showFormStatus(statusId, "Summary ready. Click Send Enquiry to share these details with the hotel.", "success");
+        if (button) button.textContent = "Proceed to PayU";
+        showFormStatus(statusId, "Summary ready. Accept the rules and click Proceed to PayU for 20% advance payment.", "success");
         return;
       }
 
@@ -1860,6 +1879,14 @@
 
       try {
         if (button) button.disabled = true;
+        if (PAYU_ADVANCE_PAYMENT_ENABLED && googleBackendReady()) {
+          payload.payuCheckout = "yes";
+          payload.source = payload.source + " - PayU advance checkout";
+          showFormStatus(statusId, "Opening secure PayU payment...", "success");
+          postBookingForPayu(payload);
+          return;
+        }
+
         showFormStatus(statusId, "Sending your enquiry...", "success");
         const sentToSheet = await submitToGoogleSheet(payload);
         if (sentToSheet) {
