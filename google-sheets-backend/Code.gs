@@ -212,10 +212,16 @@ function sendBookingEmails_(id, data) {
     "",
     "Please confirm availability from the admin sheet.",
   ].join("\n");
-  if (hotelEmails.length) MailApp.sendEmail(hotelEmails.join(","), subject, body);
+  if (hotelEmails.length) {
+    MailApp.sendEmail(hotelEmails.join(","), subject, body, {
+      name: HOTEL_NAME,
+      htmlBody: bookingHotelHtml_(id, data),
+    });
+  }
 
   if (clean_(data.email)) {
-    MailApp.sendEmail(clean_(data.email), "Your Luxmi Hotel booking enquiry - " + id, [
+    const guestSubject = "Luxmi Hotel booking voucher - " + id;
+    const guestBody = [
       "Dear " + clean_(data.name) + ",",
       "",
       "Thank you for contacting Luxmi Hotel, Prayagraj.",
@@ -235,8 +241,145 @@ function sendBookingEmails_(id, data) {
       "",
       HOTEL_NAME,
       HOTEL_PHONE,
-    ].join("\n"));
+    ].join("\n");
+    MailApp.sendEmail(clean_(data.email), guestSubject, guestBody, {
+      name: HOTEL_NAME,
+      htmlBody: bookingVoucherHtml_(id, data),
+    });
   }
+}
+
+function bookingVoucherHtml_(id, data) {
+  return bookingEmailLayout_(id, data, {
+    title: "Booking Request Voucher",
+    subtitle: "Thank you for choosing Luxmi Hotel, Prayagraj",
+    note: "Your booking request has been received. Our team will confirm room availability and payment link shortly.",
+    audience: "guest",
+  });
+}
+
+function bookingHotelHtml_(id, data) {
+  return bookingEmailLayout_(id, data, {
+    title: "New Booking Enquiry",
+    subtitle: "Action needed: check inventory and confirm availability",
+    note: "This enquiry has been saved in the hotel booking sheet. Please verify inventory before confirming payment.",
+    audience: "hotel",
+  });
+}
+
+function bookingEmailLayout_(id, data, meta) {
+  const room = clean_(data.room);
+  const guestName = clean_(data.name) || "Guest";
+  const rows = [
+    ["Booking ID", id],
+    ["Guest Name", guestName],
+    ["Phone", clean_(data.phone)],
+    ["Email", clean_(data.email)],
+    ["Room Type", room],
+    ["Persons", clean_(data.guests)],
+    ["Rooms Required", clean_(data.rooms)],
+    ["Check-in", clean_(data.checkin)],
+    ["Check-out", clean_(data.checkout)],
+  ];
+  const paymentRows = [
+    ["Estimated Total", clean_(data.total)],
+    ["20% Advance", clean_(data.advance)],
+    ["Balance at Hotel", clean_(data.balance)],
+  ];
+  const policies = [
+    "20% advance payment is required online after availability confirmation.",
+    "Remaining 80% is payable at the hotel during check-in.",
+    "The booking is non-refundable.",
+    "Unmarried and unrelated couples are not allowed.",
+    "Valid government ID is required at check-in.",
+  ];
+  const message = clean_(data.message);
+
+  return `
+  <div style="margin:0;padding:0;background:#f7efe5;font-family:Arial,Helvetica,sans-serif;color:#191312;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#f7efe5;padding:24px 0;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" width="680" cellspacing="0" cellpadding="0" style="max-width:680px;width:100%;border-collapse:collapse;background:#ffffff;border:1px solid #ead8c2;border-radius:14px;overflow:hidden;box-shadow:0 12px 36px rgba(122,23,32,.14);">
+            <tr>
+              <td style="background:#7a1720;padding:26px 30px;color:#ffffff;">
+                <div style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#dec798;font-weight:700;">Luxmi Hotel, Prayagraj</div>
+                <h1 style="margin:8px 0 6px;font-family:Georgia,serif;font-size:30px;line-height:1.15;color:#ffffff;">${escapeHtml_(meta.title)}</h1>
+                <div style="font-size:15px;line-height:1.5;color:#fff5ea;">${escapeHtml_(meta.subtitle)}</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 30px 10px;">
+                <div style="background:#fff8ee;border:1px solid #f0dfc9;border-radius:12px;padding:16px 18px;color:#4c403a;font-size:15px;line-height:1.55;">
+                  <strong style="color:#7a1720;">Dear ${escapeHtml_(guestName)},</strong><br>
+                  ${escapeHtml_(meta.note)}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 30px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                  <tr>
+                    <td style="padding:14px 14px;background:#f8f2ea;border-radius:12px;border:1px solid #ead8c2;">
+                      <div style="font-size:12px;text-transform:uppercase;letter-spacing:1.4px;color:#9a741f;font-weight:700;">Booking Details</div>
+                      ${emailRows_(rows)}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 30px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                  <tr>
+                    <td style="width:33.33%;padding:12px;background:#7a1720;color:#ffffff;border-radius:12px 0 0 12px;text-align:center;">
+                      <div style="font-size:12px;color:#dec798;font-weight:700;text-transform:uppercase;">Total</div>
+                      <div style="font-size:22px;font-weight:800;margin-top:5px;">${escapeHtml_(clean_(data.total))}</div>
+                    </td>
+                    <td style="width:33.33%;padding:12px;background:#fff8ee;color:#7a1720;border-top:1px solid #ead8c2;border-bottom:1px solid #ead8c2;text-align:center;">
+                      <div style="font-size:12px;color:#9a741f;font-weight:700;text-transform:uppercase;">Advance</div>
+                      <div style="font-size:22px;font-weight:800;margin-top:5px;">${escapeHtml_(clean_(data.advance))}</div>
+                    </td>
+                    <td style="width:33.33%;padding:12px;background:#f8f2ea;color:#191312;border:1px solid #ead8c2;border-radius:0 12px 12px 0;text-align:center;">
+                      <div style="font-size:12px;color:#9a741f;font-weight:700;text-transform:uppercase;">At Hotel</div>
+                      <div style="font-size:22px;font-weight:800;margin-top:5px;">${escapeHtml_(clean_(data.balance))}</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 30px;">
+                <div style="font-size:12px;text-transform:uppercase;letter-spacing:1.4px;color:#9a741f;font-weight:700;margin-bottom:8px;">Payment and Hotel Rules</div>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#fff8ee;border:1px solid #f0dfc9;border-radius:12px;">
+                  ${policies.map((policy) => `<tr><td style="width:34px;padding:10px 0 10px 14px;color:#7a1720;font-weight:800;">&#10003;</td><td style="padding:10px 14px 10px 4px;font-size:14px;line-height:1.45;color:#362b27;">${escapeHtml_(policy)}</td></tr>`).join("")}
+                </table>
+              </td>
+            </tr>
+            ${message ? `<tr><td style="padding:12px 30px;"><div style="background:#fbfbfb;border:1px solid #eeeeee;border-radius:12px;padding:14px;"><div style="font-size:12px;text-transform:uppercase;letter-spacing:1.4px;color:#9a741f;font-weight:700;margin-bottom:8px;">Guest Message</div><div style="font-size:14px;line-height:1.5;color:#362b27;white-space:pre-line;">${escapeHtml_(message)}</div></div></td></tr>` : ""}
+            <tr>
+              <td style="padding:18px 30px 28px;">
+                <div style="background:#191312;color:#ffffff;border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.55;">
+                  <strong style="font-size:16px;">Luxmi Hotel</strong><br>
+                  15, Swami Vivekanand Marg, Johnston Ganj, Chauraha, Prayagraj, Uttar Pradesh 211003<br>
+                  Call / WhatsApp: +91 70074 17970 | +91 70543 84239 | +91 90260 88927<br>
+                  Email: luxmihotelbooking@gmail.com
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>`;
+}
+
+function emailRows_(rows) {
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin-top:10px;">${rows.map((row) => `
+    <tr>
+      <td style="width:38%;padding:9px 8px;border-top:1px solid #ead8c2;font-size:13px;color:#6f625b;font-weight:700;">${escapeHtml_(row[0])}</td>
+      <td style="padding:9px 8px;border-top:1px solid #ead8c2;font-size:14px;color:#191312;font-weight:700;">${escapeHtml_(row[1])}</td>
+    </tr>`).join("")}</table>`;
 }
 
 function sendGroupEmails_(id, data) {
