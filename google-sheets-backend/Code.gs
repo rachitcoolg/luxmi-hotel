@@ -15,7 +15,7 @@ const SPREADSHEET_NAME = "Luxmi Hotel Booking Admin";
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxLcG88zFFHIWKoaUG_T3GOuBLToqCCuhMz9IzASRA0k65dxUDEo_ygcWIx2K8gPLGo/exec";
 const PAYU_MID = "13689292";
 const PAYU_PAYMENT_URL = "https://secure.payu.in/_payment";
-const BOOKING_HEADERS = ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Rooms Required", "Total", "20% Advance", "Balance at Hotel", "Payment Terms", "Policies", "Message", "Source", "PayU Txn ID", "PayU Payment ID", "Payment Status", "Payment Updated At"];
+const BOOKING_HEADERS = ["Timestamp", "Booking ID", "Status", "Name", "Phone", "Email", "Check-in", "Check-out", "Persons", "Room Type", "Rooms Required", "Total", "20% Advance", "Balance at Hotel", "Payment Terms", "Policies", "Message", "Source", "PayU Txn ID", "PayU Payment ID", "Payment Status", "Payment Updated At", "Inventory Blocked At", "Payment Success Email Sent At", "Payment Failure Email Sent At"];
 
 function getSpreadsheet_() {
   const props = PropertiesService.getScriptProperties();
@@ -204,6 +204,9 @@ function handleBooking_(data) {
     "",
     wantsPayu ? "Awaiting PayU payment" : "",
     wantsPayu ? new Date() : "",
+    "",
+    "",
+    "",
   ];
   ss.getSheetByName(SHEETS.bookings).appendRow(row);
   sendBookingEmails_(id, data);
@@ -650,8 +653,26 @@ function handlePayuReturn_(data) {
   const txnId = clean_(data.txnid);
   const payuId = clean_(data.mihpayid);
   const verified = payu.configured ? verifyPayuResponse_(data, payu.salt) : false;
-  const bookingId = updatePayuBookingStatus_(txnId, payuId, status, verified);
   const isSuccess = status.toLowerCase() === "success" && verified;
+  const result = updatePayuBookingStatus_(txnId, payuId, status, verified);
+  const bookingId = result.bookingId || "";
+  let inventoryBlocked = false;
+
+  if (result.bookingId && result.booking) {
+    if (isSuccess && !result.inventoryBlockedAt) {
+      inventoryBlocked = autoBlockInventoryForBooking_(result.ss, result.booking, result.bookingId);
+      setBookingCell_(result.sheet, result.headers, result.rowNumber, "Inventory Blocked At", new Date());
+    }
+    if (isSuccess && !result.successEmailSentAt) {
+      sendPaymentSuccessEmails_(result.bookingId, result.booking, data, inventoryBlocked || !!result.inventoryBlockedAt);
+      setBookingCell_(result.sheet, result.headers, result.rowNumber, "Payment Success Email Sent At", new Date());
+    }
+    if (!isSuccess && !result.failureEmailSentAt) {
+      sendPaymentFailureEmails_(result.bookingId, result.booking, data);
+      setBookingCell_(result.sheet, result.headers, result.rowNumber, "Payment Failure Email Sent At", new Date());
+    }
+  }
+
   return HtmlService.createHtmlOutput(`
     <main style="max-width:680px;margin:60px auto;font-family:Arial,sans-serif;line-height:1.55;color:#191312;padding:20px">
       <div style="border:1px solid #ead8c2;border-radius:12px;overflow:hidden;background:#fff">
@@ -664,8 +685,8 @@ function handlePayuReturn_(data) {
           <p><strong>PayU Transaction:</strong> ${escapeHtml_(txnId)}</p>
           <p><strong>PayU Payment ID:</strong> ${escapeHtml_(payuId)}</p>
           <p><strong>Status:</strong> ${escapeHtml_(status || "Unknown")}</p>
-          <p>${isSuccess ? "Thank you. Your advance payment has been recorded. Please keep this page or your PayU receipt for check-in." : "If amount was deducted, please contact Luxmi Hotel with your PayU transaction details."}</p>
-          <p><a href="https://luxmihotel.com" style="display:inline-block;padding:12px 16px;background:#7a1720;color:#fff;text-decoration:none;border-radius:6px">Back to Luxmi Hotel</a></p>
+          <p>${isSuccess ? "Thank you. Your advance payment has been recorded, your booking is marked Advance Paid, and inventory has been blocked for your stay." : "Payment was not confirmed. No inventory has been reduced. You can try booking again from the website."}</p>
+          <p><a href="https://luxmihotel.com/#booking" style="display:inline-block;padding:12px 16px;background:#7a1720;color:#fff;text-decoration:none;border-radius:6px">Book / Check Availability Again</a></p>
         </div>
       </div>
     </main>
@@ -738,25 +759,268 @@ function updatePayuBookingStatus_(txnId, payuId, status, verified) {
   setupIfNeeded_(ss);
   const sheet = ss.getSheetByName(SHEETS.bookings);
   const values = sheet.getDataRange().getValues();
-  if (values.length < 2) return "";
+  const displayValues = sheet.getDataRange().getDisplayValues();
+  if (values.length < 2) return {};
   const headers = values[0];
   const txnCol = headers.indexOf("PayU Txn ID");
+  if (txnCol < 0) return {};
   const payuIdCol = headers.indexOf("PayU Payment ID");
   const payStatusCol = headers.indexOf("Payment Status");
   const payUpdatedCol = headers.indexOf("Payment Updated At");
   const statusCol = headers.indexOf("Status");
   const bookingIdCol = headers.indexOf("Booking ID");
+  const inventoryBlockedCol = headers.indexOf("Inventory Blocked At");
+  const successEmailCol = headers.indexOf("Payment Success Email Sent At");
+  const failureEmailCol = headers.indexOf("Payment Failure Email Sent At");
+  const isSuccess = String(status).toLowerCase() === "success" && verified;
+  const paymentStatus = (verified ? "Verified " : "Unverified ") + (status || "Unknown");
   for (let i = 1; i < values.length; i += 1) {
     if (String(values[i][txnCol]) === txnId) {
       const row = i + 1;
+      const booking = rowObject_(headers, displayValues[i]);
+      const bookingId = bookingIdCol >= 0 ? values[i][bookingIdCol] : "";
       if (payuIdCol >= 0) sheet.getRange(row, payuIdCol + 1).setValue(payuId);
-      if (payStatusCol >= 0) sheet.getRange(row, payStatusCol + 1).setValue((verified ? "Verified " : "Unverified ") + status);
+      if (payStatusCol >= 0) sheet.getRange(row, payStatusCol + 1).setValue(paymentStatus);
       if (payUpdatedCol >= 0) sheet.getRange(row, payUpdatedCol + 1).setValue(new Date());
-      if (statusCol >= 0 && String(status).toLowerCase() === "success" && verified) sheet.getRange(row, statusCol + 1).setValue("Advance Paid");
-      return bookingIdCol >= 0 ? values[i][bookingIdCol] : "";
+      if (statusCol >= 0) sheet.getRange(row, statusCol + 1).setValue(isSuccess ? "Advance Paid" : "Payment Failed");
+      booking["Booking ID"] = bookingId;
+      booking["Status"] = isSuccess ? "Advance Paid" : "Payment Failed";
+      booking["PayU Payment ID"] = payuId;
+      booking["Payment Status"] = paymentStatus;
+      booking["Payment Updated At"] = new Date();
+      return {
+        ss: ss,
+        sheet: sheet,
+        headers: headers,
+        rowNumber: row,
+        bookingId: bookingId,
+        booking: booking,
+        inventoryBlockedAt: inventoryBlockedCol >= 0 ? values[i][inventoryBlockedCol] : "",
+        successEmailSentAt: successEmailCol >= 0 ? values[i][successEmailCol] : "",
+        failureEmailSentAt: failureEmailCol >= 0 ? values[i][failureEmailCol] : "",
+      };
     }
   }
-  return "";
+  return {};
+}
+
+function rowObject_(headers, row) {
+  const object = {};
+  headers.forEach((header, index) => {
+    object[header] = row[index];
+  });
+  return object;
+}
+
+function setBookingCell_(sheet, headers, rowNumber, header, value) {
+  const column = headers.indexOf(header);
+  if (column >= 0 && rowNumber) sheet.getRange(rowNumber, column + 1).setValue(value);
+}
+
+function autoBlockInventoryForBooking_(ss, booking, bookingId) {
+  let sheet = ss.getSheetByName(SHEETS.calendar);
+  if (!sheet) {
+    buildInventoryCalendar_(ss, 180);
+    sheet = ss.getSheetByName(SHEETS.calendar);
+  }
+  const checkin = parseBookingDate_(booking["Check-in"]);
+  let checkout = parseBookingDate_(booking["Check-out"]);
+  if (!checkin) return false;
+  if (!checkout || checkout <= checkin) checkout = addDays_(checkin, 1);
+
+  const rooms = getRoomDefinitions_(ss);
+  const blockColumn = calendarBlockColumnForRoom_(booking["Room Type"]);
+  const roomCount = parseRoomsRequired_(booking["Rooms Required"]);
+  const tz = Session.getScriptTimeZone();
+  let cursor = new Date(checkin);
+  let changed = false;
+  let guard = 0;
+
+  while (cursor < checkout && guard < 90) {
+    const rowNumber = ensureCalendarRowForDate_(sheet, cursor, rooms, tz);
+    const current = Number(sheet.getRange(rowNumber, blockColumn).getValue()) || 0;
+    sheet.getRange(rowNumber, blockColumn).setValue(current + roomCount);
+    appendCalendarNote_(sheet, rowNumber, bookingId + " +" + roomCount + " room");
+    cursor = addDays_(cursor, 1);
+    changed = true;
+    guard += 1;
+  }
+  SpreadsheetApp.flush();
+  return changed;
+}
+
+function calendarBlockColumnForRoom_(roomType) {
+  const room = clean_(roomType).toLowerCase();
+  if (room.indexOf("standard") >= 0 || room.indexOf("non ac") >= 0) return 4;
+  if (room.indexOf("four") >= 0) return 12;
+  return 8;
+}
+
+function ensureCalendarRowForDate_(sheet, date, rooms, tz) {
+  const target = Utilities.formatDate(date, tz, "yyyy-MM-dd");
+  const lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    const values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (let i = 0; i < values.length; i += 1) {
+      const existing = values[i][0] instanceof Date ? Utilities.formatDate(values[i][0], tz, "yyyy-MM-dd") : clean_(values[i][0]);
+      if (existing === target) return i + 2;
+    }
+  }
+
+  const rowNumber = lastRow + 1;
+  sheet.getRange(rowNumber, 1, 1, 15).setValues([[
+    date,
+    '=TEXT(A' + rowNumber + ',"ddd")',
+    rooms[0].totalRooms,
+    0,
+    "=MAX(0,C" + rowNumber + "-D" + rowNumber + ")",
+    rooms[0].basePrice,
+    rooms[1].totalRooms,
+    0,
+    "=MAX(0,G" + rowNumber + "-H" + rowNumber + ")",
+    rooms[1].basePrice,
+    rooms[2].totalRooms,
+    0,
+    "=MAX(0,K" + rowNumber + "-L" + rowNumber + ")",
+    rooms[2].basePrice,
+    "",
+  ]]);
+  sheet.getRange(rowNumber, 1).setNumberFormat("yyyy-mm-dd");
+  return rowNumber;
+}
+
+function appendCalendarNote_(sheet, rowNumber, note) {
+  const cell = sheet.getRange(rowNumber, 15);
+  const existing = clean_(cell.getValue());
+  if (existing.indexOf(note) >= 0) return;
+  cell.setValue(existing ? existing + "; " + note : note);
+}
+
+function parseBookingDate_(value) {
+  const text = clean_(value);
+  const parts = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!parts) return null;
+  const date = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function addDays_(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function parseRoomsRequired_(value) {
+  const match = clean_(value).match(/\d+/);
+  return Math.max(1, match ? Number(match[0]) : 1);
+}
+
+function sendPaymentSuccessEmails_(id, booking, payuData, inventoryBlocked) {
+  const hotelEmails = getHotelEmails_();
+  const customerEmail = clean_(booking["Email"]);
+  const subject = "Payment confirmed - Luxmi Hotel booking " + id;
+  const html = paymentEmailHtml_(id, booking, payuData, true, inventoryBlocked);
+  const body = paymentPlainText_(id, booking, payuData, true);
+  if (customerEmail) {
+    MailApp.sendEmail({ to: customerEmail, subject: subject, body: body, htmlBody: html, name: HOTEL_NAME });
+  }
+  MailApp.sendEmail({
+    to: hotelEmails.join(","),
+    subject: "Advance paid booking " + id + " - block inventory",
+    body: body,
+    htmlBody: paymentHotelHtml_(id, booking, payuData, inventoryBlocked),
+    name: HOTEL_NAME,
+  });
+}
+
+function sendPaymentFailureEmails_(id, booking, payuData) {
+  const customerEmail = clean_(booking["Email"]);
+  const subject = "Payment failed - Luxmi Hotel booking " + id;
+  const html = paymentEmailHtml_(id, booking, payuData, false, false);
+  const body = paymentPlainText_(id, booking, payuData, false);
+  if (customerEmail) {
+    MailApp.sendEmail({ to: customerEmail, subject: subject, body: body, htmlBody: html, name: HOTEL_NAME });
+  }
+}
+
+function paymentHotelHtml_(id, booking, payuData, inventoryBlocked) {
+  const html = paymentEmailHtml_(id, booking, payuData, true, inventoryBlocked);
+  return html.replace("Your advance payment is confirmed.", "Guest advance payment is confirmed. Please prepare inventory and check the calendar.");
+}
+
+function paymentEmailHtml_(id, booking, payuData, success, inventoryBlocked) {
+  const title = success ? "Payment Confirmation Voucher" : "Payment Failed";
+  const badge = success ? "Advance Paid" : "Payment Failed";
+  const badgeColor = success ? "#126437" : "#7a1720";
+  const intro = success
+    ? "Your advance payment is confirmed. Please carry a valid government ID at check-in."
+    : "Your payment was not confirmed. No room inventory has been reduced. Please use the booking link below to try again.";
+  const rows = [
+    ["Booking ID", id],
+    ["Guest", booking["Name"]],
+    ["Phone", booking["Phone"]],
+    ["Email", booking["Email"]],
+    ["Check-in", booking["Check-in"]],
+    ["Check-out", booking["Check-out"]],
+    ["Persons", booking["Persons"]],
+    ["Room Type", booking["Room Type"]],
+    ["Rooms Required", booking["Rooms Required"]],
+    ["Total Amount", booking["Total"]],
+    ["Advance Paid / Due", booking["20% Advance"]],
+    ["Balance at Hotel", booking["Balance at Hotel"]],
+    ["PayU Txn ID", clean_(payuData.txnid)],
+    ["PayU Payment ID", clean_(payuData.mihpayid)],
+    ["Payment Status", success ? "Success" : clean_(payuData.status || "Failed")],
+    ["Inventory", success ? (inventoryBlocked ? "Blocked in calendar" : "Already blocked") : "Not reduced"],
+  ];
+  return `<div style="margin:0;background:#f8f1e9;padding:28px;font-family:Arial,sans-serif;color:#191312;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #ead8c2;border-radius:18px;overflow:hidden;">
+      <tr>
+        <td style="background:#7a1720;color:#ffffff;padding:26px 30px;">
+          <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#dec798;font-weight:800;">Luxmi Hotel Prayagraj</div>
+          <h1 style="font-family:Georgia,serif;font-size:32px;line-height:1.1;margin:8px 0 0;">${escapeHtml_(title)}</h1>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:24px 30px;">
+          <div style="display:inline-block;background:${badgeColor};color:#ffffff;border-radius:999px;padding:8px 14px;font-weight:800;margin-bottom:14px;">${escapeHtml_(badge)}</div>
+          <p style="font-size:16px;line-height:1.6;margin:0 0 14px;">${escapeHtml_(intro)}</p>
+          ${emailRows_(rows)}
+          <div style="margin-top:18px;background:#fff8ee;border:1px solid #f0dfc9;border-radius:12px;padding:14px;font-size:14px;line-height:1.55;">
+            <strong>Hotel rules:</strong> Booking is non-refundable. Unmarried and unrelated couples are not allowed. Valid government ID is required at check-in.
+          </div>
+          <p style="margin:22px 0 0;">
+            <a href="https://luxmihotel.com/#booking" style="display:inline-block;background:#7a1720;color:#ffffff;text-decoration:none;border-radius:8px;padding:12px 16px;font-weight:800;">Booking Link</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+  </div>`;
+}
+
+function paymentPlainText_(id, booking, payuData, success) {
+  return [
+    success ? "Luxmi Hotel payment confirmed." : "Luxmi Hotel payment failed.",
+    "",
+    "Booking ID: " + id,
+    "Guest: " + clean_(booking["Name"]),
+    "Phone: " + clean_(booking["Phone"]),
+    "Email: " + clean_(booking["Email"]),
+    "Check-in: " + clean_(booking["Check-in"]),
+    "Check-out: " + clean_(booking["Check-out"]),
+    "Room: " + clean_(booking["Room Type"]),
+    "Rooms: " + clean_(booking["Rooms Required"]),
+    "Total: " + clean_(booking["Total"]),
+    "Advance: " + clean_(booking["20% Advance"]),
+    "Balance at Hotel: " + clean_(booking["Balance at Hotel"]),
+    "PayU Txn ID: " + clean_(payuData.txnid),
+    "PayU Payment ID: " + clean_(payuData.mihpayid),
+    "",
+    success ? "Status: Advance Paid. Inventory has been blocked in the calendar." : "Status: Payment Failed. Inventory was not reduced.",
+    "Booking link: https://luxmihotel.com/#booking",
+  ].join("\n");
 }
 
 function payuReturnUrl_() {
