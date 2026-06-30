@@ -108,9 +108,39 @@ function createTodayDashboard() {
 function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
   if (params.health === "1") return text_("OK");
+  if (params.visitor === "1") return visitorCounter_(params);
   if (params.txnid && params.status) return handlePayuReturn_(params);
   if (!isAdmin_(params.adminKey)) return adminLogin_();
   return adminPage_(params.adminKey, params.message || "");
+}
+
+function visitorCounter_(params) {
+  const props = PropertiesService.getScriptProperties();
+  const lock = LockService.getScriptLock();
+  let count = Number(props.getProperty("VISITOR_TOTAL") || "0");
+
+  try {
+    lock.waitLock(5000);
+    count = Number(props.getProperty("VISITOR_TOTAL") || "0");
+    if (String(params.increment || "") === "1") {
+      count += 1;
+      props.setProperty("VISITOR_TOTAL", String(count));
+      props.setProperty("VISITOR_UPDATED_AT", new Date().toISOString());
+    }
+  } catch (_err) {
+    // Keep the public site working even if the counter is temporarily locked.
+  } finally {
+    try { lock.releaseLock(); } catch (_err) {}
+  }
+
+  const payload = { ok: true, count: count };
+  const callback = String(params.callback || "").replace(/[^\w.$]/g, "");
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + "(" + JSON.stringify(payload) + ");")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return json_(payload);
 }
 
 function doPost(e) {
