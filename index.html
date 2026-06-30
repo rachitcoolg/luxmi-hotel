@@ -78,6 +78,35 @@
       gap: 16px;
     }
 
+    .topbar-contact {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .visitor-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 9px;
+      border: 1px solid rgba(222,199,152,0.45);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .visitor-badge strong {
+      color: var(--gold);
+      font-weight: 900;
+    }
+
     .nav {
       position: sticky;
       top: 0;
@@ -807,6 +836,7 @@
 
     @media (max-width: 920px) {
       .topbar-inner { align-items: flex-start; flex-direction: column; gap: 4px; }
+      .topbar-contact { justify-content: flex-start; gap: 6px 10px; }
       .nav-links, .nav-inner > .btn { display: none; }
       .menu-btn { display: inline-grid; place-items: center; }
       .hero { min-height: 680px; }
@@ -824,6 +854,7 @@
       .topbar, .nav-inner, .topbar-inner, .wrap, .hero-content, .quick-book { width: calc(100% - 28px); }
       .topbar { padding: 8px 0; font-size: 12px; }
       .topbar-inner span:last-child { line-height: 1.7; }
+      .visitor-badge { padding: 3px 8px; font-size: 11px; }
       .nav-inner { min-height: 62px; gap: 10px; }
       .brand { font-size: 24px; gap: 8px; }
       .brand img { width: 42px; height: 42px; }
@@ -982,7 +1013,10 @@
   <div class="topbar">
     <div class="topbar-inner">
       <span>Luxmi Hotel, Prayagraj, Uttar Pradesh</span>
-      <span>Call/WhatsApp: <a href="tel:+917007417970">+91 70074 17970</a> | <a href="tel:+917054384239">+91 70543 84239</a> | <a href="tel:+919026088927">+91 90260 88927</a></span>
+      <span class="topbar-contact">
+        <span>Call/WhatsApp: <a href="tel:+917007417970">+91 70074 17970</a> | <a href="tel:+917054384239">+91 70543 84239</a> | <a href="tel:+919026088927">+91 90260 88927</a></span>
+        <span class="visitor-badge" aria-label="Website visitors">Visitors <strong id="visitor-count">--</strong></span>
+      </span>
     </div>
   </div>
 
@@ -1425,6 +1459,7 @@
   <script>
     const HOTEL_WHATSAPP_NUMBER = "917007417970";
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLcG88zFFHIWKoaUG_T3GOuBLToqCCuhMz9IzASRA0k65dxUDEo_ygcWIx2K8gPLGo/exec";
+    const VISITOR_COUNTED_KEY = "luxmiVisitorCounted";
     const GROUP_INVENTORY = {
       nonAc: { label: "Standard Non-AC rooms", rooms: 8, occupancy: 3 },
       acQuad: { label: "AC quad occupancy rooms", rooms: 5, occupancy: 4 },
@@ -1464,6 +1499,35 @@
       "Unmarried and unrelated couples are not allowed.",
       "Valid government ID is required at check-in."
     ];
+
+    function formatVisitorCount(count) {
+      const number = Number(count || 0);
+      if (!Number.isFinite(number) || number <= 0) return "--";
+      return number.toLocaleString("en-IN");
+    }
+
+    function loadVisitorCount() {
+      const badge = document.getElementById("visitor-count");
+      if (!badge || !GOOGLE_SCRIPT_URL) return;
+
+      const callbackName = "__luxmiVisitorCounter";
+      const hasCounted = localStorage.getItem(VISITOR_COUNTED_KEY) === "yes";
+      window[callbackName] = function(data) {
+        if (data && data.ok) {
+          badge.textContent = formatVisitorCount(data.count);
+          if (!hasCounted) localStorage.setItem(VISITOR_COUNTED_KEY, "yes");
+        }
+        const script = document.getElementById("visitor-counter-script");
+        if (script) script.remove();
+        try { delete window[callbackName]; } catch (_err) { window[callbackName] = undefined; }
+      };
+
+      const script = document.createElement("script");
+      script.id = "visitor-counter-script";
+      script.src = GOOGLE_SCRIPT_URL + "?visitor=1&increment=" + (hasCounted ? "0" : "1") + "&callback=" + callbackName + "&t=" + Date.now();
+      script.onerror = function() { badge.textContent = "--"; };
+      document.head.appendChild(script);
+    }
     const roomGalleries = {
       standard: {
         title: "Standard Double Room NON AC",
@@ -2037,6 +2101,7 @@
 
     setMinimumDates();
     updateGroupPlan();
+    loadVisitorCount();
 
     ["group-guests", "group-preference"].forEach((id) => {
       const input = document.getElementById(id);
