@@ -946,64 +946,157 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "Hotel",
-    "name": "Luxmi Hotel",
-    "url": "https://luxmihotel.com/",
-    "image": [
-      "https://luxmihotel.com/assets/reception-hero.jpeg",
-      "https://luxmihotel.com/assets/hotel-building-exterior.svg",
-      "https://luxmihotel.com/assets/deluxe-double-ac-main.jpeg",
-      "https://luxmihotel.com/assets/four-bed-room-main.jpeg"
-    ],
-    "logo": "https://luxmihotel.com/assets/luxmi-logo-dark.png",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "15, Swami Vivekanand Marg, Johnston Ganj, Chauraha",
-      "addressLocality": "Prayagraj",
-      "addressRegion": "Uttar Pradesh",
-      "postalCode": "211003",
-      "addressCountry": "IN"
-    },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": 25.4358,
-      "longitude": 81.8463
-    },
-    "hasMap": "https://maps.app.goo.gl/pqZB5CP8BLzBZmbu5",
-    "telephone": ["+917007417970", "+917054384239", "+919026088927"],
-    "email": "luxmihotelbooking@gmail.com",
-    "priceRange": "Rs.800 - Rs.1800",
-    "currenciesAccepted": "INR",
-    "paymentAccepted": "Cash, UPI, Cards, PayU",
-    "amenityFeature": [
-      { "@type": "LocationFeatureSpecification", "name": "AC and non-AC rooms", "value": true },
-      { "@type": "LocationFeatureSpecification", "name": "Free Wi-Fi", "value": true },
-      { "@type": "LocationFeatureSpecification", "name": "Hot water", "value": true },
-      { "@type": "LocationFeatureSpecification", "name": "Power backup", "value": true },
-      { "@type": "LocationFeatureSpecification", "name": "Travel assistance", "value": true },
-      { "@type": "LocationFeatureSpecification", "name": "In-house restaurant", "value": true }
-    ],
-    "makesOffer": [
+    "@graph": [
       {
-        "@type": "Offer",
+        "@type": "Hotel",
+        "@id": "https://luxmihotel.com/#hotel",
+        "name": "Luxmi Hotel",
+        "identifier": "luxmi-hotel-prayagraj",
+        "url": "https://luxmihotel.com/",
+        "image": [
+          "https://luxmihotel.com/assets/reception-hero.jpeg",
+          "https://luxmihotel.com/assets/hotel-building-exterior.jpg",
+          "https://luxmihotel.com/assets/deluxe-double-ac-main.jpeg",
+          "https://luxmihotel.com/assets/four-bed-room-main.jpeg"
+        ],
+        "logo": "https://luxmihotel.com/assets/luxmi-logo-dark.png",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "15, Swami Vivekanand Marg, Johnston Ganj, Chauraha",
+          "addressLocality": "Prayagraj",
+          "addressRegion": "Uttar Pradesh",
+          "postalCode": "211003",
+          "addressCountry": "IN"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 25.4358,
+          "longitude": 81.8463
+        },
+        "hasMap": "https://maps.app.goo.gl/pqZB5CP8BLzBZmbu5",
+        "telephone": ["+917007417970", "+917054384239", "+919026088927"],
+        "email": "luxmihotelbooking@gmail.com",
+        "priceRange": "INR 800 - INR 1800 per night",
+        "currenciesAccepted": "INR",
+        "paymentAccepted": "Cash, UPI, Cards, PayU",
+        "checkinTime": "12:00:00",
+        "checkoutTime": "11:00:00",
+        "amenityFeature": [
+          { "@type": "LocationFeatureSpecification", "name": "AC and non-AC rooms", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Free Wi-Fi", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Hot water", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Power backup", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Travel assistance", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "In-house restaurant", "value": true }
+        ],
+        "makesOffer": [
+          {
+            "@type": ["Offer", "LodgingReservation"],
+            "@id": "https://luxmihotel.com/#standard-double-non-ac-offer",
+            "name": "Standard Double Room NON AC",
+            "url": "https://luxmihotel.com/#booking",
+            "availability": "https://schema.org/InStock",
+            "priceSpecification": {
+              "@type": "CompoundPriceSpecification",
+              "price": 800,
+              "priceCurrency": "INR",
+              "priceComponent": [
+                { "@type": "UnitPriceSpecification", "name": "Base room rate per night", "price": 800, "priceCurrency": "INR" },
+                { "@type": "UnitPriceSpecification", "name": "Advance payable online", "price": 160, "priceCurrency": "INR", "potentialAction": { "@type": "PayAction", "recipient": { "@type": "OnlineBusiness", "name": "Luxmi Hotel website" } } },
+                { "@type": "UnitPriceSpecification", "name": "Balance payable at hotel", "price": 640, "priceCurrency": "INR", "potentialAction": { "@type": "PayAction", "recipient": { "@type": "Hotel", "name": "Luxmi Hotel" } } }
+              ]
+            },
+            "itemOffered": { "@id": "https://luxmihotel.com/#standard-double-non-ac" }
+          },
+          {
+            "@type": ["Offer", "LodgingReservation"],
+            "@id": "https://luxmihotel.com/#deluxe-double-ac-offer",
+            "name": "Deluxe Double Room AC",
+            "url": "https://luxmihotel.com/#booking",
+            "availability": "https://schema.org/InStock",
+            "priceSpecification": {
+              "@type": "CompoundPriceSpecification",
+              "price": 1200,
+              "priceCurrency": "INR",
+              "priceComponent": [
+                { "@type": "UnitPriceSpecification", "name": "Base room rate per night", "price": 1200, "priceCurrency": "INR" },
+                { "@type": "UnitPriceSpecification", "name": "Advance payable online", "price": 240, "priceCurrency": "INR", "potentialAction": { "@type": "PayAction", "recipient": { "@type": "OnlineBusiness", "name": "Luxmi Hotel website" } } },
+                { "@type": "UnitPriceSpecification", "name": "Balance payable at hotel", "price": 960, "priceCurrency": "INR", "potentialAction": { "@type": "PayAction", "recipient": { "@type": "Hotel", "name": "Luxmi Hotel" } } }
+              ]
+            },
+            "itemOffered": { "@id": "https://luxmihotel.com/#deluxe-double-ac" }
+          },
+          {
+            "@type": ["Offer", "LodgingReservation"],
+            "@id": "https://luxmihotel.com/#deluxe-four-bed-ac-offer",
+            "name": "Deluxe Four Bed AC",
+            "url": "https://luxmihotel.com/#booking",
+            "availability": "https://schema.org/InStock",
+            "priceSpecification": {
+              "@type": "CompoundPriceSpecification",
+              "price": 1800,
+              "priceCurrency": "INR",
+              "priceComponent": [
+                { "@type": "UnitPriceSpecification", "name": "Base room rate per night", "price": 1800, "priceCurrency": "INR" },
+                { "@type": "UnitPriceSpecification", "name": "Advance payable online", "price": 360, "priceCurrency": "INR", "potentialAction": { "@type": "PayAction", "recipient": { "@type": "OnlineBusiness", "name": "Luxmi Hotel website" } } },
+                { "@type": "UnitPriceSpecification", "name": "Balance payable at hotel", "price": 1440, "priceCurrency": "INR", "potentialAction": { "@type": "PayAction", "recipient": { "@type": "Hotel", "name": "Luxmi Hotel" } } }
+              ]
+            },
+            "itemOffered": { "@id": "https://luxmihotel.com/#deluxe-four-bed-ac" }
+          }
+        ]
+      },
+      {
+        "@type": "HotelRoom",
+        "@id": "https://luxmihotel.com/#standard-double-non-ac",
         "name": "Standard Double Room NON AC",
-        "price": "800",
-        "priceCurrency": "INR",
-        "availability": "https://schema.org/InStock"
+        "bed": "Double bed",
+        "occupancy": { "@type": "QuantitativeValue", "maxValue": 3, "unitText": "persons" },
+        "amenityFeature": [
+          { "@type": "LocationFeatureSpecification", "name": "Attached washroom", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Television", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Air cooler", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Geyser", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Proper lighting", "value": true }
+        ],
+        "offers": { "@id": "https://luxmihotel.com/#standard-double-non-ac-offer" }
       },
       {
-        "@type": "Offer",
+        "@type": "HotelRoom",
+        "@id": "https://luxmihotel.com/#deluxe-double-ac",
         "name": "Deluxe Double Room AC",
-        "price": "1200",
-        "priceCurrency": "INR",
-        "availability": "https://schema.org/InStock"
+        "bed": "Double bed",
+        "occupancy": { "@type": "QuantitativeValue", "maxValue": 3, "unitText": "persons" },
+        "amenityFeature": [
+          { "@type": "LocationFeatureSpecification", "name": "Attached washroom", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Television", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Air conditioning", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Sofa table", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Almirah", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Geyser", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Wi-Fi", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Room service", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Housekeeping", "value": true }
+        ],
+        "offers": { "@id": "https://luxmihotel.com/#deluxe-double-ac-offer" }
       },
       {
-        "@type": "Offer",
+        "@type": "HotelRoom",
+        "@id": "https://luxmihotel.com/#deluxe-four-bed-ac",
         "name": "Deluxe Four Bed AC",
-        "price": "1800",
-        "priceCurrency": "INR",
-        "availability": "https://schema.org/InStock"
+        "bed": "Four beds",
+        "occupancy": { "@type": "QuantitativeValue", "maxValue": 5, "unitText": "persons" },
+        "amenityFeature": [
+          { "@type": "LocationFeatureSpecification", "name": "Attached washroom", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Television", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Air conditioning", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Almirah", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Geyser", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Wi-Fi", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Room service", "value": true },
+          { "@type": "LocationFeatureSpecification", "name": "Housekeeping", "value": true }
+        ],
+        "offers": { "@id": "https://luxmihotel.com/#deluxe-four-bed-ac-offer" }
       }
     ]
   }
