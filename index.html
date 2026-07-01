@@ -1234,7 +1234,7 @@
               <h3>Standard Double Room NON AC</h3>
               <p>A clean non-AC double bed room for up to 3 guests, with attached washroom and essential in-room facilities.</p>
               <div class="tags"><span class="tag">Double Bed Room</span><span class="tag">Attached Washroom</span><span class="tag">Television</span><span class="tag">Air Cooler</span><span class="tag">Geyser</span><span class="tag">Proper Lighting</span><span class="tag">Max 3 Pax</span><span class="tag">Extra Guest Rs.300</span></div>
-              <div class="price-row"><div class="price">Rs.800 <span>/ night</span></div><div class="room-actions"><button class="btn-photo" type="button" onclick="openPhotoViewer('standard')">View Photos</button><a href="#booking" class="btn btn-primary">Book</a></div></div>
+              <div class="price-row"><div class="price" data-room-price="standard">Rs.800 <span>/ night</span></div><div class="room-actions"><button class="btn-photo" type="button" onclick="openPhotoViewer('standard')">View Photos</button><a href="#booking" class="btn btn-primary">Book</a></div></div>
             </div>
           </article>
           <article class="card">
@@ -1246,7 +1246,7 @@
               <h3>Deluxe Double Room AC</h3>
               <p>A comfortable AC double bed room for up to 3 guests, ideal for couples and small families with extra seating and daily service.</p>
               <div class="tags"><span class="tag">Double Bed Room</span><span class="tag">Attached Washroom</span><span class="tag">Television</span><span class="tag">Air Conditioning</span><span class="tag">Sofa Table</span><span class="tag">Almirah</span><span class="tag">Geyser</span><span class="tag">Wi-Fi</span><span class="tag">Proper Lighting</span><span class="tag">Room Service</span><span class="tag">Housekeeping</span><span class="tag">Max 3 Pax</span><span class="tag">Extra Guest Rs.300</span></div>
-              <div class="price-row"><div class="price">Rs.1200 <span>/ night</span></div><div class="room-actions"><button class="btn-photo" type="button" onclick="openPhotoViewer('deluxeDouble')">View Photos</button><a href="#booking" class="btn btn-primary">Book</a></div></div>
+              <div class="price-row"><div class="price" data-room-price="deluxeDouble">Rs.1200 <span>/ night</span></div><div class="room-actions"><button class="btn-photo" type="button" onclick="openPhotoViewer('deluxeDouble')">View Photos</button><a href="#booking" class="btn btn-primary">Book</a></div></div>
             </div>
           </article>
           <article class="card">
@@ -1258,7 +1258,7 @@
               <h3>Deluxe Four Bed AC</h3>
               <p>A spacious four bedded AC room for families and groups of up to 5 guests, with attached washroom and daily service.</p>
               <div class="tags"><span class="tag">Four Bedded Room</span><span class="tag">Attached Washroom</span><span class="tag">Television</span><span class="tag">Air Conditioning</span><span class="tag">Almirah</span><span class="tag">Geyser</span><span class="tag">Wi-Fi</span><span class="tag">Proper Lighting</span><span class="tag">Room Service</span><span class="tag">Housekeeping</span><span class="tag">Max 5 Pax</span><span class="tag">Extra Guest Rs.300</span></div>
-              <div class="price-row"><div class="price">Rs.1800 <span>/ night</span></div><div class="room-actions"><button class="btn-photo" type="button" onclick="openPhotoViewer('deluxeFour')">View Photos</button><a href="#booking" class="btn btn-primary">Book</a></div></div>
+              <div class="price-row"><div class="price" data-room-price="deluxeFour">Rs.1800 <span>/ night</span></div><div class="room-actions"><button class="btn-photo" type="button" onclick="openPhotoViewer('deluxeFour')">View Photos</button><a href="#booking" class="btn btn-primary">Book</a></div></div>
             </div>
           </article>
         </div>
@@ -1562,6 +1562,7 @@
     const ROOM_TYPES = {
       standard: {
         label: "Standard Double Room NON AC",
+        basePrice: 800,
         price: 800,
         baseOccupancy: 2,
         maxOccupancy: 3,
@@ -1569,6 +1570,7 @@
       },
       deluxeDouble: {
         label: "Deluxe Double Room AC",
+        basePrice: 1200,
         price: 1200,
         baseOccupancy: 2,
         maxOccupancy: 3,
@@ -1576,6 +1578,7 @@
       },
       deluxeFour: {
         label: "Deluxe Four Bed AC",
+        basePrice: 1800,
         price: 1800,
         baseOccupancy: 4,
         maxOccupancy: 5,
@@ -1585,6 +1588,9 @@
     const EXTRA_GUEST_CHARGE = 300;
     const ADVANCE_PERCENT = 20;
     const PAYU_ADVANCE_PAYMENT_ENABLED = true;
+    let liveRateData = null;
+    let liveRateKey = "";
+    let liveRateRequestId = 0;
     const BOOKING_POLICIES = [
       "20% advance payment is required online after availability confirmation.",
       "Remaining 80% payment is payable at the hotel during check-in.",
@@ -1697,6 +1703,97 @@
       return "Rs." + Number(value || 0).toLocaleString("en-IN");
     }
 
+    function rateKey(checkin, checkout) {
+      return (checkin || "") + "|" + (checkout || "");
+    }
+
+    function selectedRateDates() {
+      const checkin = readValue(["qb-date", "checkin"]);
+      const checkout = readValue(["qb-checkout", "checkout"]);
+      return { checkin, checkout };
+    }
+
+    function loadLiveRates(checkin, checkout) {
+      if (!googleBackendReady()) return Promise.resolve(null);
+      const requestKey = rateKey(checkin, checkout);
+      if (liveRateData && liveRateKey === requestKey) return Promise.resolve(liveRateData);
+
+      const requestId = ++liveRateRequestId;
+      const callbackName = "__luxmiRates" + requestId;
+      return new Promise((resolve) => {
+        const script = document.createElement("script");
+        const cleanup = () => {
+          script.remove();
+          try { delete window[callbackName]; } catch (_err) { window[callbackName] = undefined; }
+        };
+
+        window[callbackName] = function(data) {
+          cleanup();
+          if (requestId !== liveRateRequestId || !data || !data.ok) return resolve(null);
+          liveRateData = data;
+          liveRateKey = requestKey;
+          applyLiveRates(data);
+          resolve(data);
+        };
+
+        script.onerror = function() {
+          cleanup();
+          resolve(null);
+        };
+
+        const params = new URLSearchParams({
+          rates: "1",
+          checkin: checkin || "",
+          checkout: checkout || "",
+          callback: callbackName,
+          t: Date.now().toString()
+        });
+        script.src = GOOGLE_SCRIPT_URL + "?" + params.toString();
+        document.head.appendChild(script);
+      });
+    }
+
+    async function refreshLiveRates(checkin, checkout) {
+      const data = await loadLiveRates(checkin, checkout);
+      if (!data) updateDisplayedRoomRates();
+      return data;
+    }
+
+    function refreshLiveRatesFromInputs() {
+      const dates = selectedRateDates();
+      return refreshLiveRates(dates.checkin, dates.checkout);
+    }
+
+    function applyLiveRates(data) {
+      Object.keys(ROOM_TYPES).forEach((roomKey) => {
+        const rate = data.rooms && data.rooms[roomKey];
+        if (!rate) return;
+        ROOM_TYPES[roomKey].price = Number(rate.averageRate || rate.price || ROOM_TYPES[roomKey].basePrice);
+        ROOM_TYPES[roomKey].inventory = Number(rate.availableRooms != null ? rate.availableRooms : ROOM_TYPES[roomKey].inventory);
+      });
+      updateDisplayedRoomRates(data);
+    }
+
+    function updateDisplayedRoomRates(data) {
+      Object.keys(ROOM_TYPES).forEach((roomKey) => {
+        const room = ROOM_TYPES[roomKey];
+        const rate = data && data.rooms ? data.rooms[roomKey] : null;
+        const price = rate ? Number(rate.averageRate || rate.price || room.price) : room.price;
+        const hasMultipleNights = rate && Number(data.nights || 1) > 1;
+        const suffix = hasMultipleNights ? " avg / night" : " / night";
+
+        document.querySelectorAll('[data-room-price="' + roomKey + '"]').forEach((el) => {
+          el.innerHTML = formatRupees(price) + " <span>" + suffix + "</span>";
+        });
+
+        document.querySelectorAll("select").forEach((select) => {
+          Array.from(select.options).forEach((option) => {
+            if (option.value === roomKey) option.textContent = room.label + " - " + formatRupees(price);
+          });
+        });
+      });
+    }
+
     function plural(value, word) {
       return value + " " + word + (value === 1 ? "" : "s");
     }
@@ -1736,26 +1833,34 @@
       const guestSplit = distributeGuests(cleanGuests, roomCount, room.maxOccupancy);
       const baseGuestCapacity = roomCount * room.baseOccupancy;
       const extraGuests = Math.max(cleanGuests - baseGuestCapacity, 0);
-      const roomTotal = roomCount * room.price * nights;
+      const liveRate = liveRateData && liveRateKey === rateKey(checkin, checkout) && liveRateData.rooms ? liveRateData.rooms[roomKey] : null;
+      const nightlyTotal = liveRate ? Number(liveRate.nightlyTotal || 0) : room.price * nights;
+      const averageRate = liveRate ? Number(liveRate.averageRate || room.price) : room.price;
+      const availableRooms = liveRate ? Number(liveRate.availableRooms) : room.inventory;
+      const roomTotal = roomCount * nightlyTotal;
       const extraTotal = extraGuests * EXTRA_GUEST_CHARGE * nights;
       const total = roomTotal + extraTotal;
       const advanceAmount = Math.ceil(total * ADVANCE_PERCENT / 100);
       const balanceAmount = Math.max(total - advanceAmount, 0);
-      const available = roomCount <= room.inventory;
+      const available = roomCount <= availableRooms;
       const stayText = checkin && checkout ? checkin + " to " + checkout : "Selected date";
+      const nightlyText = liveRate && liveRate.nightly && liveRate.nightly.length > 1
+        ? "Nightly rates: " + liveRate.nightly.map((item) => item.date + " " + formatRupees(item.rate)).join(", ")
+        : "";
       const lines = [
         "Guests: " + plural(cleanGuests, "person"),
         "Stay: " + stayText + " (" + plural(nights, "night") + ")",
         "Room type: " + room.label,
         "Rooms required: " + plural(roomCount, "room") + " (" + guestSplit.join(" + ") + " guests)",
-        "Room price: " + formatRupees(room.price) + " x " + roomCount + " x " + plural(nights, "night") + " = " + formatRupees(roomTotal),
+        "Room price: " + formatRupees(averageRate) + " avg x " + roomCount + " x " + plural(nights, "night") + " = " + formatRupees(roomTotal),
+        nightlyText,
         "Extra guest charge: " + formatRupees(EXTRA_GUEST_CHARGE) + " x " + extraGuests + " x " + plural(nights, "night") + " = " + formatRupees(extraTotal),
         "20% advance payable online: " + formatRupees(advanceAmount),
         "Balance payable at hotel: " + formatRupees(balanceAmount)
-      ];
+      ].filter(Boolean);
 
       if (!available) {
-        lines.push("Selected room category has " + room.inventory + " rooms online, so hotel confirmation is required.");
+        lines.push("Selected room category has " + availableRooms + " rooms available online for these dates, so hotel confirmation is required.");
       }
 
       return {
@@ -2059,6 +2164,7 @@
       const checkin = scopedValue(form, isQuickForm ? "qb-date" : "checkin");
       const checkout = scopedValue(form, isQuickForm ? "qb-checkout" : "checkout");
       const guests = scopedValue(form, isQuickForm ? "qb-guests" : "contact-guests");
+      await refreshLiveRates(checkin, checkout);
       const bookingSummary = calculateBookingSummary(roomKey, guests, checkin, checkout);
 
       if (isQuickForm && form.dataset.summaryReady !== "true") {
@@ -2195,6 +2301,7 @@
     setMinimumDates();
     updateGroupPlan();
     loadVisitorCount();
+    refreshLiveRatesFromInputs();
 
     ["group-guests", "group-preference"].forEach((id) => {
       const input = document.getElementById(id);
@@ -2206,6 +2313,11 @@
       const input = document.getElementById(id);
       if (input) input.addEventListener("input", resetQuickBookingSummary);
       if (input) input.addEventListener("change", resetQuickBookingSummary);
+    });
+
+    ["qb-date", "qb-checkout", "checkin", "checkout"].forEach((id) => {
+      const input = document.getElementById(id);
+      if (input) input.addEventListener("change", refreshLiveRatesFromInputs);
     });
 
     document.addEventListener("keydown", (event) => {
