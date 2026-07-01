@@ -109,6 +109,7 @@ function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
   if (params.health === "1") return text_("OK");
   if (params.visitor === "1") return visitorCounter_(params);
+  if (params.rates === "1") return ratesEndpoint_(params);
   if (params.txnid && params.status) return handlePayuReturn_(params);
   if (!isAdmin_(params.adminKey)) return adminLogin_();
   return adminPage_(params.adminKey, params.message || "");
@@ -138,6 +139,113 @@ function visitorCounter_(params) {
   if (callback) {
     return ContentService
       .createTextOutput(callback + "(" + JSON.stringify(payload) + ");")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return json_(payload);
+}
+
+function ratesEndpoint_(params) {
+  const ss = getSpreadsheet_();
+  setupIfNeeded_(ss);
+  const tz = Session.getScriptTimeZone();
+  const checkin = parseBookingDate_(params.checkin) || todayLocal_();
+  let checkout = parseBookingDate_(params.checkout);
+  if (!checkout || checkout <= checkin) checkout = addDays_(checkin, 1);
+  const dates = stayDates_(checkin, checkout);
+  const rooms = getRoomDefinitions_(ss);
+
+  let sheet = ss.getSheetByName(SHEETS.calendar);
+  if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 15) {
+    buildInventoryCalendar_(ss, 180);
+    sheet = ss.getSheetByName(SHEETS.calendar);
+  }
+  dates.forEach((date) => ensureCalendarRowForDate_(sheet, date, rooms, tz));
+  SpreadsheetApp.flush();
+
+  const byDate = calendarRowsByDate_(sheet, tz);
+  const payload = {
+    ok: true,
+    source: "Inventory Calendar",
+    checkin: formatDateKey_(checkin, tz),
+    checkout: formatDateKey_(checkout, tz),
+    nights: dates.length,
+    updatedAt: new Date().toISOString(),
+    rooms: {
+      standard: summarizeRatesForRoom_(dates, byDate, rooms[0], 5, 4, tz),
+      deluxeDouble: summarizeRatesForRoom_(dates, byDate, rooms[1], 9, 8, tz),
+      deluxeFour: summarizeRatesForRoom_(dates, byDate, rooms[2], 13, 12, tz),
+    },
+  };
+
+  return jsonp_(payload, params.callback);
+}
+
+function summarizeRatesForRoom_(dates, byDate, room, rateIndex, remainingIndex, tz) {
+  const nightly = dates.map((date) => {
+    const key = formatDateKey_(date, tz);
+    const row = byDate[key] || [];
+    const rate = Number(row[rateIndex]) || Number(room.basePrice) || 0;
+    const remaining = Number(row[remainingIndex]);
+    return {
+      date: key,
+      rate: rate,
+      remaining: Number.isFinite(remaining) ? remaining : Number(room.totalRooms || 0),
+    };
+  });
+  const nightlyTotal = nightly.reduce((sum, item) => sum + item.rate, 0);
+  const minRemaining = nightly.reduce((min, item) => Math.min(min, item.remaining), Number.POSITIVE_INFINITY);
+  return {
+    label: room.roomType,
+    price: nightly[0] ? nightly[0].rate : Number(room.basePrice || 0),
+    averageRate: nightly.length ? Math.round(nightlyTotal / nightly.length) : Number(room.basePrice || 0),
+    nightlyTotal: nightlyTotal,
+    availableRooms: Number.isFinite(minRemaining) ? minRemaining : Number(room.totalRooms || 0),
+    totalRooms: Number(room.totalRooms || 0),
+    nightly: nightly,
+  };
+}
+
+function calendarRowsByDate_(sheet, tz) {
+  const map = {};
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return map;
+  const values = sheet.getRange(2, 1, lastRow - 1, 15).getValues();
+  values.forEach((row) => {
+    const value = row[0];
+    if (!value) return;
+    const key = value instanceof Date ? formatDateKey_(value, tz) : clean_(value);
+    map[key] = row;
+  });
+  return map;
+}
+
+function stayDates_(checkin, checkout) {
+  const dates = [];
+  let cursor = new Date(checkin);
+  let guard = 0;
+  while (cursor < checkout && guard < 90) {
+    dates.push(new Date(cursor));
+    cursor = addDays_(cursor, 1);
+    guard += 1;
+  }
+  return dates.length ? dates : [new Date(checkin)];
+}
+
+function todayLocal_() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function formatDateKey_(date, tz) {
+  return Utilities.formatDate(date, tz, "yyyy-MM-dd");
+}
+
+function jsonp_(payload, callback) {
+  const safeCallback = String(callback || "").replace(/[^\w.$]/g, "");
+  if (safeCallback) {
+    return ContentService
+      .createTextOutput(safeCallback + "(" + JSON.stringify(payload) + ");")
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
   return json_(payload);
