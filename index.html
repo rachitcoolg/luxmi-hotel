@@ -2317,6 +2317,7 @@
 
     ["qb-date", "qb-checkout", "checkin", "checkout"].forEach((id) => {
       const input = document.getElementById(id);
+      if (input) input.addEventListener("input", refreshLiveRatesFromInputs);
       if (input) input.addEventListener("change", refreshLiveRatesFromInputs);
     });
 
